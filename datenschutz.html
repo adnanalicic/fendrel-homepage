@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datenschutz – Fendrel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #1a2e4a;
+      --navy-mid: #1e3a5f;
+      --navy-dark: #0f1e30;
+      --orange: #e87224;
+      --orange-hover: #d4651f;
+      --orange-light: #fff3e8;
+      --bg: #f5f7fa;
+      --white: #ffffff;
+      --gray-100: #f0f2f5;
+      --gray-200: #e2e8f0;
+      --gray-400: #94a3b8;
+      --gray-600: #475569;
+      --text: #1a2e4a;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px rgba(0,0,0,.05), 0 10px 30px rgba(0,0,0,.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--white);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── NAV ──────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--navy);
+      letter-spacing: -.3px;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--navy);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--gray-600);
+      font-size: .9rem;
+      font-weight: 500;
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--navy); }
+    .nav-actions { display: flex; gap: 12px; align-items: center; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--orange);
+      color: white;
+      border: 2px solid var(--orange);
+    }
+    .btn-primary:hover { background: var(--orange-hover); border-color: var(--orange-hover); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--navy);
+      border: 1.5px solid var(--gray-200);
+    }
+    .btn-ghost:hover { border-color: var(--navy); }
+
+    /* ── PRIVACY CONTENT ─────────────────────────────────── */
+    .privacy-hero {
+      background: var(--bg);
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .privacy-hero h1 {
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: -.02em;
+      margin-bottom: 12px;
+    }
+    .privacy-hero p {
+      font-size: 1rem;
+      color: var(--gray-600);
+      line-height: 1.6;
+    }
+
+    .privacy-content {
+      padding: 48px 0 80px;
+    }
+    .privacy-content .inner {
+      max-width: 780px;
+    }
+    .privacy-content h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-top: 40px;
+      margin-bottom: 12px;
+    }
+    .privacy-content h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-top: 24px;
+      margin-bottom: 8px;
+    }
+    .privacy-content p,
+    .privacy-content li {
+      font-size: .925rem;
+      color: var(--gray-600);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+    .privacy-content ul {
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+    .privacy-content li {
+      margin-bottom: 6px;
+    }
+    .privacy-content a {
+      color: var(--orange);
+      text-decoration: none;
+    }
+    .privacy-content a:hover {
+      text-decoration: underline;
+    }
+
+    /* ── FOOTER ───────────────────────────────────────────── */
+    footer {
+      background: var(--navy-dark);
+      padding: 48px 0 32px;
+    }
+    .footer-inner {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      padding-bottom: 36px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      margin-bottom: 24px;
+    }
+    .footer-brand .logo { color: white; margin-bottom: 12px; display: inline-flex; }
+    .footer-brand p { font-size: .82rem; color: rgba(255,255,255,.45); line-height: 1.6; max-width: 260px; }
+    .footer-col h4 { font-size: .8rem; font-weight: 700; color: rgba(255,255,255,.4); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 14px; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .footer-col a { font-size: .85rem; color: rgba(255,255,255,.55); text-decoration: none; transition: color .15s; }
+    .footer-col a:hover { color: white; }
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .78rem;
+      color: rgba(255,255,255,.3);
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ──────────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">⚡</div>
+        Fendrel
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html#konzept">Das Konzept</a></li>
+        <li><a href="index.html#funktionen">Funktionen</a></li>
+        <li><a href="index.html#branchen">Branchen</a></li>
+        <li><a href="index.html#experten">Für Experten</a></li>
+      </ul>
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-ghost">Zurück zur Startseite</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── PRIVACY HERO ────────────────────────────────────────────────────── -->
+<section class="privacy-hero">
+  <div class="container">
+    <h1>Datenschutzerklärung</h1>
+    <p>Informationen zum Umgang mit Ihren personenbezogenen Daten gemäß DSGVO.</p>
+  </div>
+</section>
+
+<!-- ── PRIVACY CONTENT ─────────────────────────────────────────────────── -->
+<section class="privacy-content">
+  <div class="container">
+    <div class="inner">
+
+      <h2>1. Verantwortlicher</h2>
+      <p>
+        Fendrel<br>
+        E-Mail: kontakt@fendrel.app<br>
+        Website: fendrel.app
+      </p>
+
+      <h2>2. Überblick der Datenverarbeitung</h2>
+      <p>Wir nehmen den Schutz Ihrer persönlichen Daten sehr ernst. Wir behandeln Ihre personenbezogenen Daten vertraulich und entsprechend der gesetzlichen Datenschutzvorschriften sowie dieser Datenschutzerklärung.</p>
+      <p>Die Nutzung unserer Website ist in der Regel ohne Angabe personenbezogener Daten möglich. Soweit auf unserer Website personenbezogene Daten erhoben werden, erfolgt dies stets auf freiwilliger Basis.</p>
+
+      <h2>3. Erhebung und Speicherung personenbezogener Daten</h2>
+
+      <h3>3.1 Beim Besuch der Website</h3>
+      <p>Beim Aufrufen unserer Website werden durch den Browser automatisch Informationen an den Server unserer Website gesendet. Diese Informationen werden temporär in einem sogenannten Logfile gespeichert. Folgende Informationen werden dabei ohne Ihr Zutun erfasst:</p>
+      <ul>
+        <li>IP-Adresse des anfragenden Rechners</li>
+        <li>Datum und Uhrzeit des Zugriffs</li>
+        <li>Name und URL der abgerufenen Datei</li>
+        <li>Website, von der aus der Zugriff erfolgt (Referrer-URL)</li>
+        <li>Verwendeter Browser und ggf. das Betriebssystem Ihres Rechners</li>
+      </ul>
+      <p>Die genannten Daten werden zu folgenden Zwecken verarbeitet:</p>
+      <ul>
+        <li>Gewährleistung eines reibungslosen Verbindungsaufbaus der Website</li>
+        <li>Gewährleistung einer komfortablen Nutzung unserer Website</li>
+        <li>Auswertung der Systemsicherheit und -stabilität</li>
+      </ul>
+      <p>Die Rechtsgrundlage für die Datenverarbeitung ist Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse folgt aus den oben aufgelisteten Zwecken zur Datenerhebung.</p>
+
+      <h3>3.2 Bei Kontaktaufnahme</h3>
+      <p>Wenn Sie uns per E-Mail kontaktieren, werden die von Ihnen mitgeteilten Daten (z. B. Ihre E-Mail-Adresse, ggf. Ihr Name und Ihre Telefonnummer) von uns gespeichert, um Ihre Anfrage zu beantworten. Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.</p>
+
+      <h3>3.3 Bei Registrierung und Nutzung der Plattform</h3>
+      <p>Sofern Sie sich für unsere Plattform registrieren, erheben wir folgende Daten:</p>
+      <ul>
+        <li>Name und Vorname</li>
+        <li>E-Mail-Adresse</li>
+        <li>Unternehmen bzw. Organisation</li>
+        <li>Branche</li>
+      </ul>
+      <p>Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. b DSGVO zur Durchführung vorvertraglicher Maßnahmen bzw. zur Vertragserfüllung.</p>
+
+      <h2>4. Weitergabe von Daten</h2>
+      <p>Eine Übermittlung Ihrer persönlichen Daten an Dritte zu anderen als den im Folgenden aufgeführten Zwecken findet nicht statt. Wir geben Ihre persönlichen Daten nur an Dritte weiter, wenn:</p>
+      <ul>
+        <li>Sie Ihre ausdrückliche Einwilligung dazu erteilt haben (Art. 6 Abs. 1 lit. a DSGVO)</li>
+        <li>die Weitergabe zur Vertragserfüllung erforderlich ist (Art. 6 Abs. 1 lit. b DSGVO)</li>
+        <li>eine gesetzliche Verpflichtung besteht (Art. 6 Abs. 1 lit. c DSGVO)</li>
+        <li>die Weitergabe zur Wahrung berechtigter Interessen erforderlich ist (Art. 6 Abs. 1 lit. f DSGVO)</li>
+      </ul>
+
+      <h2>5. Hosting</h2>
+      <p>Unsere Website wird bei GitHub Pages gehostet. Der Anbieter ist GitHub Inc., 88 Colin P Kelly Jr St, San Francisco, CA 94107, USA. Beim Besuch unserer Website erfasst GitHub automatisch verschiedene Logdaten. Weitere Informationen finden Sie in der Datenschutzerklärung von GitHub.</p>
+
+      <h2>6. Cookies</h2>
+      <p>Unsere Website verwendet derzeit keine Cookies. Sollten in Zukunft Cookies eingesetzt werden, werden wir diese Datenschutzerklärung entsprechend aktualisieren und Sie vor dem Setzen von Cookies um Ihre Einwilligung bitten.</p>
+
+      <h2>7. Ihre Rechte</h2>
+      <p>Sie haben gegenüber uns folgende Rechte hinsichtlich der Sie betreffenden personenbezogenen Daten:</p>
+      <ul>
+        <li><strong>Recht auf Auskunft</strong> (Art. 15 DSGVO)</li>
+        <li><strong>Recht auf Berichtigung</strong> (Art. 16 DSGVO)</li>
+        <li><strong>Recht auf Löschung</strong> (Art. 17 DSGVO)</li>
+        <li><strong>Recht auf Einschränkung der Verarbeitung</strong> (Art. 18 DSGVO)</li>
+        <li><strong>Recht auf Datenübertragbarkeit</strong> (Art. 20 DSGVO)</li>
+        <li><strong>Recht auf Widerspruch</strong> (Art. 21 DSGVO)</li>
+      </ul>
+      <p>Zur Ausübung Ihrer Rechte wenden Sie sich bitte an: <a href="mailto:kontakt@fendrel.app">kontakt@fendrel.app</a></p>
+      <p>Darüber hinaus haben Sie das Recht, sich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung Ihrer personenbezogenen Daten durch uns zu beschweren.</p>
+
+      <h2>8. Datensicherheit</h2>
+      <p>Wir verwenden innerhalb des Website-Besuchs das verbreitete SSL-Verfahren (Secure Socket Layer) in Verbindung mit der jeweils höchsten Verschlüsselungsstufe, die von Ihrem Browser unterstützt wird. Alle im Rahmen der Plattform übertragenen Daten werden verschlüsselt übertragen.</p>
+
+      <h2>9. Aktualität und Änderung dieser Datenschutzerklärung</h2>
+      <p>Diese Datenschutzerklärung ist aktuell gültig und hat den Stand April 2026.</p>
+      <p>Durch die Weiterentwicklung unserer Website oder die Implementierung neuer Technologien kann es notwendig werden, diese Datenschutzerklärung zu ändern. Wir behalten uns vor, diese Datenschutzerklärung jederzeit mit Wirkung für die Zukunft zu ändern.</p>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="index.html" class="logo"><div class="logo-icon">⚡</div>Fendrel</a>
+        <p>Die Plattform für feldbasierte Fachexperten. Eigene Tools entwickeln, Kunden gewinnen, gemeinsam wachsen.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Produkt</h4>
+        <ul>
+          <li><a href="index.html#konzept">Das Konzept</a></li>
+          <li><a href="index.html#funktionen">Funktionen</a></li>
+          <li><a href="index.html">Dokumentenmanagement</a></li>
+          <li><a href="index.html">Mehrsprachigkeit</a></li>
+          <li><a href="index.html">Demo starten</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Branchen</h4>
+        <ul>
+          <li><a href="index.html#branchen">Baugewerbe</a></li>
+          <li><a href="index.html#branchen">Pflege & Gesundheit</a></li>
+          <li><a href="index.html#branchen">Industrie & Wartung</a></li>
+          <li><a href="index.html#branchen">Landwirtschaft</a></li>
+          <li><a href="index.html#branchen">Weitere Branchen</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Rechtliches</h4>
+        <ul>
+          <li><a href="datenschutz.html">Datenschutz</a></li>
+          <li><a href="#">Impressum</a></li>
+          <li><a href="#">AGB</a></li>
+          <li><a href="mailto:kontakt@fendrel.app">kontakt@fendrel.app</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2025 Fendrel. Alle Rechte vorbehalten. Entwickelt in der DACH-Region.</span>
+      <span>fendrel.app</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
