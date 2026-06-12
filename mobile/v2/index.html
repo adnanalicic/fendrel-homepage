@@ -3,7 +3,12 @@
 <head>
   <meta charset="utf-8"/>
   <title>Fendrel Mobil — Aufgaben (Prototyp)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Fendrel"/>
+  <meta name="theme-color" content="#0F2B46"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -11,10 +16,10 @@
     html, body, #root { margin: 0; padding: 0; min-height: 100%; }
     body {
       font-family: 'Inter', system-ui, sans-serif;
-      background: radial-gradient(120% 120% at 50% 0%, #eef2f6 0%, #e3e8ee 100%);
+      background: #0F2B46;
       color: #0F2B46; -webkit-font-smoothing: antialiased;
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh; padding: 28px 16px;
+      margin: 0; min-height: 100vh; min-height: 100dvh;
+      overscroll-behavior: none; -webkit-tap-highlight-color: transparent;
     }
     *, *::before, *::after { box-sizing: border-box; }
     ::-webkit-scrollbar { width: 0; height: 0; }
@@ -338,9 +343,8 @@
       }
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-          <AndroidDevice deviceBg="#fff" screenBg={FT.gray50} statusBarBg={SIGNAL} statusBarDark={true}>
-            <div style={{ width: '100%', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0, background: FT.gray50 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: FT.navy, overflow: 'hidden', paddingTop: 'env(safe-area-inset-top)' }}>
+            <div style={{ width: '100%', flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0, background: FT.gray50 }}>
               <div key={screenKey} data-screen-anim data-screen-label={screenKey} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, animation: 'scrIn 220ms ease' }}>
                 {body}
               </div>
@@ -356,10 +360,6 @@
                 </div>
               ) : null}
             </div>
-          </AndroidDevice>
-          <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
-            Fendrel · Klickbarer Prototyp — {caption}
-          </div>
         </div>
       );
     }
