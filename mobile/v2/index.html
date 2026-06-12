@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <title>Fendrel Mobil — Aufgaben (Prototyp)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    html, body, #root { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: radial-gradient(120% 120% at 50% 0%, #eef2f6 0%, #e3e8ee 100%);
+      color: #0F2B46; -webkit-font-smoothing: antialiased;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 28px 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    @keyframes scrIn { from { transform: translateY(8px); } to { transform: translateY(0); } }
+    @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @media (prefers-reduced-motion: reduce) { [data-screen-anim] { animation: none !important; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <template id="__bundler_thumbnail" data-bg-color="#0F2B46">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#0F2B46"/>
+      <rect x="470" y="170" width="260" height="460" rx="36" fill="#fff"/>
+      <rect x="470" y="170" width="260" height="92" rx="36" fill="#163A5C"/>
+      <rect x="470" y="226" width="260" height="36" fill="#163A5C"/>
+      <rect x="498" y="296" width="120" height="14" rx="7" fill="#0F2B46"/>
+      <rect x="498" y="322" width="180" height="14" rx="7" fill="#94A3B8"/>
+      <rect x="498" y="372" width="204" height="60" rx="14" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="2"/>
+      <rect x="498" y="372" width="6" height="60" rx="3" fill="#F97316"/>
+      <rect x="498" y="452" width="204" height="60" rx="14" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="2"/>
+      <rect x="498" y="452" width="6" height="60" rx="3" fill="#16A34A"/>
+      <rect x="498" y="532" width="204" height="60" rx="14" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="2"/>
+      <rect x="498" y="532" width="6" height="60" rx="3" fill="#DC2626"/>
+      <circle cx="600" cy="690" r="26" fill="#F97316"/>
+      <path d="M600 678v24M588 690h24" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+    </svg>
+  </template>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="readonly-shared.jsx"></script>
+  <script type="text/babel" src="android-frame.jsx"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const { useState } = React;
+
+    // App-bar theme: navy app bar (white status-bar icons sit on it cleanly).
+    const SIGNAL = FT.navy;
+    const SIGNAL_CHIP = 'rgba(255,255,255,0.12)';
+
+    // Projects the field worker is assigned to (entry point).
+    const PROJECTS = [
+      { id: 'nordring', name: 'Baustelle Nordring', site: 'Zürich-Nord · Achse A–D', kind: 'Bau',
+        icon: 'building', color: '#2563EB', openTasks: 5, urgent: 1, vehicles: 1, diary: true },
+      { id: 'hofA', name: 'Recyclinghof Standort A', site: 'Dietikon · Halle 1–3', kind: 'Recycling',
+        icon: 'truck', color: '#16A34A', openTasks: 2, urgent: 0, vehicles: 3, diary: false },
+      { id: 'sortwest', name: 'Sortieranlage West', site: 'Schlieren · Aussenlager', kind: 'Recycling',
+        icon: 'scale', color: '#F97316', openTasks: 1, urgent: 0, vehicles: 1, diary: false },
+    ];
+
+    // ── Tokens for priority ────────────────────────────────────────────────
+    const PRIO = {
+      urgent: { label: 'Dringend', stripe: FT.error,  bg: FT.errorLight,   fg: FT.errorDark,   pill: true },
+      high:   { label: 'Hoch',     stripe: FT.orange, bg: FT.orange100,    fg: FT.orangeDark,  pill: true },
+      medium: { label: 'Mittel',   stripe: FT.warning,bg: FT.warningLight, fg: FT.warningDark, pill: false },
+      low:    { label: 'Niedrig',  stripe: FT.gray300,bg: FT.gray100,      fg: FT.gray600,     pill: false },
+    };
+    const ANNA = { name: 'Anna Becker', color: '#16A34A', role: 'Bauleiterin' };
+    const RETO = { name: 'Reto Weber',  color: '#F97316', role: 'Polier' };
+    const ME   = { name: 'Bernd Hoffmann', color: '#2563EB' };
+    const PEOPLE = [ANNA, RETO, { name: 'Selma Krieg', color: '#7C3AED', role: 'Sicherheit' }];
+
+    const uid = (() => { let n = 100; return () => 'n' + (++n); })();
+
+    // ── Seed tasks ──────────────────────────────────────────────────────────
+    const SEED = [
+      { id: 'a', title: 'Absturzsicherung am Gerüst prüfen – 3. OG', priority: 'urgent',
+        due: 'bis 17:00', when: 'today', ort: 'Nordring · Achse C', by: ANNA, done: false,
+        description: 'Bitte kontrolliere das Geländer auf der Außenseite vom Gerüst im 3. Obergeschoss. An einer Stelle fehlt die Absturzsicherung. Wenn möglich, gleich nachbessern.',
+        steps: [
+          { t: 'Hingehen', s: '3. Obergeschoss, Achse C – Außenseite' },
+          { t: 'Geländer prüfen & nachbessern', s: 'Fehlende Sicherung anbringen' },
+          { t: 'Foto machen & „Erledigt" tippen', s: 'Das Foto ist dein Nachweis' },
+        ],
+        labels: ['Sicherheit', 'Gerüst'], photo: true },
+      { id: 'b', title: 'Container Kühlgeräte zur Triage bereitstellen', priority: 'high',
+        due: 'bis 15:00', when: 'today', ort: 'Hof · Tor 2', by: RETO, done: false,
+        description: 'Die Kühlgeräte aus Halle 2 zum Triage-Platz bei Tor 2 bringen. Reto nimmt sie dort entgegen.',
+        labels: ['Logistik'] },
+      { id: 'c', title: 'Stapler #2 – Tagescheck durchführen', priority: 'medium',
+        due: 'heute', when: 'today', ort: 'Halle 3', by: ANNA, done: false,
+        description: 'Den täglichen Sicherheitscheck am Stapler #2 durchführen und im Wartungsbuch quittieren.',
+        labels: ['Fahrzeug'] },
+      { id: 'd', title: 'Gerüst Achse B abbauen', priority: 'low',
+        due: 'Morgen', when: 'week', ort: 'Nordring · Achse B', by: RETO, done: false,
+        description: 'Das Gerüst an Achse B kann abgebaut werden. Material auf Palette stapeln.',
+        labels: ['Gerüst'] },
+      { id: 'e', title: 'Bauzaun kontrollieren', priority: 'medium',
+        due: 'Freitag', when: 'week', ort: 'Nordring · Zufahrt', by: ANNA, done: false,
+        description: 'Den Bauzaun entlang der Zufahrt auf Standfestigkeit prüfen.', labels: ['Sicherheit'] },
+      { id: 'f', title: 'Erste-Hilfe-Kasten auffüllen', priority: 'low',
+        due: 'Gestern', when: 'today', ort: 'Bürocontainer', by: ANNA, done: true, description: '' },
+      { id: 'g', title: 'Müllpresse Funktionscheck', priority: 'medium',
+        due: 'Gestern', when: 'today', ort: 'Halle 1', by: RETO, done: true, description: '' },
+    ];
+
+    /* ═══════════════════ Wartungsbuch (Fahrzeuge) data ═══════════════════ */
+    const VSTATUS = {
+      aktiv:       { label: 'Betriebsbereit', dot: FT.success, bg: FT.successLight, fg: FT.successDark },
+      uvv_faellig: { label: 'UVV fällig',     dot: FT.warning, bg: FT.warningLight, fg: FT.warningDark },
+      gesperrt:    { label: 'Gesperrt',       dot: FT.error,   bg: FT.errorLight,   fg: FT.errorDark },
+    };
+    const SEV = {
+      O: { code: 'O', label: 'Optisch',    color: FT.warning, light: FT.warningLight, dark: FT.warningDark, hint: 'Betrieb möglich' },
+      G: { code: 'G', label: 'Gefährdend', color: FT.orange,  light: FT.orange100,    dark: FT.orangeDark,  hint: 'Sofort stilllegen' },
+      K: { code: 'K', label: 'Kritisch',   color: FT.error,   light: FT.errorLight,   dark: FT.errorDark,   hint: 'Sperren & melden' },
+    };
+    const VSECTIONS = [
+      { id: 'betrieb',    label: 'Betriebsstunden', icon: 'gauge',       add: 'Zählerstand erfassen' },
+      { id: 'wartung',    label: 'Wartungen',       icon: 'shield',      add: 'Prüfung dokumentieren' },
+      { id: 'reparatur',  label: 'Reparaturen',     icon: 'wrench',      add: 'Reparatur erfassen' },
+      { id: 'maengel',    label: 'Mängel',          icon: 'warning',     add: 'Mangel melden' },
+      { id: 'einweisung', label: 'Einweisungen',    icon: 'certificate', add: 'Einweisung erfassen' },
+    ];
+    const VEHICLES = [
+      { id: 'sk04', label: 'Gegengewichtsstapler', geraetenr: 'SK-04', status: 'aktiv',
+        hersteller: 'Linde', modell: 'E25', halle: 'Halle 1 · Ladebereich', verantwortlich: 'Anna Becker',
+        betriebsstunden: 4218, uvvIn: 11, uvvDate: '12.06.2026', offeneMaengel: 1,
+        log: {
+          betrieb: [
+            { datum: '01.05.2026', stand: '4218', diff: '+182', by: 'Markus Roth', note: 'Frühschicht' },
+            { datum: '01.04.2026', stand: '4036', diff: '+167', by: 'Markus Roth', note: '' },
+            { datum: '01.03.2026', stand: '3869', diff: '+201', by: 'Eva Müller', note: 'erhöhte Auslastung' },
+          ],
+          wartung: [
+            { datum: '12.06.2025', art: 'UVV-Prüfung (jährlich)', pruefer: 'TÜV Süd — M. Keller', ergebnis: 'bestanden', naechste: '12.06.2026' },
+            { datum: '08.01.2025', art: '500-h-Wartung', pruefer: 'Linde Service', ergebnis: 'bestanden', naechste: '—' },
+          ],
+          reparatur: [
+            { datum: '20.02.2026', desc: 'Hydraulikschlauch Hubzylinder ersetzt', by: 'Yannick Beer', kosten: 'CHF 240' },
+            { datum: '03.11.2025', desc: 'Fahrschalter (Joystick) getauscht', by: 'Linde Service', kosten: 'CHF 410' },
+          ],
+          maengel: [
+            { datum: '28.04.2026', desc: 'Warnblinker hinten links ohne Funktion', schwere: 'O', behoben: '', by: 'Markus Roth' },
+          ],
+          einweisung: [
+            { name: 'Roth, Markus', abt: 'Logistik', schein: 'FS-CH-77214', datum: '03.07.2021', gueltig: '03.07.2026' },
+            { name: 'Müller, Eva', abt: 'Werkstatt', schein: 'FS-CH-80991', datum: '11.01.2023', gueltig: '11.01.2026' },
+          ],
+        },
+      },
+      { id: 'sk02', label: 'Gegengewichtsstapler', geraetenr: 'SK-02', status: 'uvv_faellig',
+        hersteller: 'Still', modell: 'RX20', halle: 'Halle 2', verantwortlich: 'Reto Weber',
+        betriebsstunden: 6740, uvvIn: 3, uvvDate: '04.06.2026', offeneMaengel: 0,
+        log: {
+          betrieb: [
+            { datum: '01.05.2026', stand: '6740', diff: '+143', by: 'Eva Müller', note: '' },
+            { datum: '01.04.2026', stand: '6597', diff: '+128', by: 'Eva Müller', note: '' },
+          ],
+          wartung: [
+            { datum: '04.06.2025', art: 'UVV-Prüfung (jährlich)', pruefer: 'TÜV Süd — M. Keller', ergebnis: 'bestanden', naechste: '04.06.2026' },
+          ],
+          reparatur: [
+            { datum: '12.01.2026', desc: 'Bremsbeläge hinten erneuert', by: 'Yannick Beer', kosten: 'CHF 180' },
+          ],
+          maengel: [],
+          einweisung: [
+            { name: 'Müller, Eva', abt: 'Werkstatt', schein: 'FS-CH-80991', datum: '11.01.2023', gueltig: '11.01.2026' },
+          ],
+        },
+      },
+      { id: 'sk07', label: 'Gegengewichtsstapler', geraetenr: 'SK-07', status: 'gesperrt',
+        hersteller: 'Toyota', modell: '8FBET20', halle: 'Halle 3 · Sortierung', verantwortlich: 'Reto Weber',
+        betriebsstunden: 5102, uvvIn: 112, uvvDate: '21.09.2026', offeneMaengel: 1,
+        log: {
+          betrieb: [
+            { datum: '01.05.2026', stand: '5102', diff: '+88', by: 'Yannick Beer', note: 'reduzierter Einsatz' },
+          ],
+          wartung: [
+            { datum: '21.09.2025', art: 'UVV-Prüfung (jährlich)', pruefer: 'DEKRA — S. Frei', ergebnis: 'bestanden', naechste: '21.09.2026' },
+          ],
+          reparatur: [],
+          maengel: [
+            { datum: '02.05.2026', desc: 'Hydrauliköl-Leckage am Hubmast, Tropfverlust', schwere: 'K', behoben: '', by: 'Yannick Beer' },
+          ],
+          einweisung: [
+            { name: 'Beer, Yannick', abt: 'Werkstatt', schein: 'FS-CH-71240', datum: '05.10.2020', gueltig: '05.10.2025' },
+          ],
+        },
+      },
+    ];
+
+    // ════════════════════════════════════════════════════════════════════
+    /* ═══════════════════ Bautagebuch (Notizen) data ═════════════════════ */
+    const WEATHER = {
+      sonnig:   { label: 'Sonnig',   color: '#D97706', bg: '#FEF3C7' },
+      bewoelkt: { label: 'Bewölkt',  color: '#475569', bg: '#F1F5F9' },
+      regen:    { label: 'Regen',    color: '#2563EB', bg: '#DBEAFE' },
+      schnee:   { label: 'Schnee',   color: '#0284C7', bg: '#E0F2FE' },
+      wind:     { label: 'Wind',     color: '#475569', bg: '#F1F5F9' },
+    };
+    function WIcon({ kind, size = 20, color }) {
+      const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
+      switch (kind) {
+        case 'sonnig':   return <svg {...p}><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>;
+        case 'bewoelkt': return <svg {...p}><path d="M7 18a4 4 0 0 1 .3-8A5 5 0 0 1 17 10.2 3.5 3.5 0 0 1 17.5 18H7Z"/></svg>;
+        case 'regen':    return <svg {...p}><path d="M7 15a4 4 0 0 1 .3-8A5 5 0 0 1 17 7.2 3.5 3.5 0 0 1 17.5 15H7Z"/><path d="M8.5 18.5l-1 2.5M12 18.5l-1 2.5M15.5 18.5l-1 2.5"/></svg>;
+        case 'schnee':   return <svg {...p}><path d="M7 15a4 4 0 0 1 .3-8A5 5 0 0 1 17 7.2 3.5 3.5 0 0 1 17.5 15H7Z"/><path d="M8.5 19v.01M12 20v.01M15.5 19v.01"/></svg>;
+        case 'wind':     return <svg {...p}><path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h9a2.5 2.5 0 1 1-2.5 2.5"/></svg>;
+        default: return null;
+      }
+    }
+
+    const TODAY_DIARY = { date: '13.06.2026', weekday: 'Freitag' };
+    const DIARY_ENTRIES = [
+      { id: 'bt1', date: '12.06.2026', weekday: 'Donnerstag', weather: 'bewoelkt', tempC: 14, crew: 12,
+        leistungen: ['Bewehrung 3. OG Achse C–E eingebaut', 'Schalung Decke über 2. OG gestellt', 'Materialbühne am Kran montiert'],
+        lieferungen: ['Transportbeton C25/30 — 18 m³ (10:20)', 'Bewehrungsstahl — 4,2 t (07:40)'],
+        vorkommnisse: 'Kran 1 Stillstand 45 Min wegen Sturmböen (11:05–11:50).',
+        notiz: 'Nachunternehmer Elektro nicht erschienen — telefonisch gemahnt.',
+        photos: 3, status: 'synced', by: 'Bernd Hoffmann', time: '16:42', gps: '47.4102, 8.5421' },
+      { id: 'bt2', date: '11.06.2026', weekday: 'Mittwoch', weather: 'sonnig', tempC: 19, crew: 14,
+        leistungen: ['Betonage Decke über 1. OG abgeschlossen', 'Nachbehandlung / Abdeckung aufgebracht'],
+        lieferungen: ['Transportbeton C25/30 — 32 m³ (08:15)'],
+        vorkommnisse: '', notiz: 'Betonprüfwürfel entnommen (3 Stk.).',
+        photos: 5, status: 'synced', by: 'Bernd Hoffmann', time: '17:10', gps: '47.4102, 8.5420' },
+      { id: 'bt3', date: '10.06.2026', weekday: 'Dienstag', weather: 'regen', tempC: 11, crew: 9,
+        leistungen: ['Schalarbeiten witterungsbedingt unterbrochen', 'Baustelle gesichert & geräumt'],
+        lieferungen: [], vorkommnisse: 'Starkregen ab 13:00 — Arbeiten eingestellt.', notiz: '',
+        photos: 2, status: 'synced', by: 'Reto Weber', time: '14:30', gps: '47.4101, 8.5421' },
+    ];
+
+    // ════════════════════════════════════════════════════════════════════
+    function App() {
+      const [tasks, setTasks] = useState(SEED);
+      const [screen, setScreen] = useState('list');   // list | detail | create
+      const [selId, setSelId] = useState(null);
+      const [toast, setToast] = useState(null);
+
+      const [entry, setEntry] = useState('projects');     // projects | hub | app
+      const [selProjectId, setSelProjectId] = useState(null);
+      const [nav, setNav] = useState('aufgaben');         // aufgaben | fahrzeuge | bautagebuch | profil
+      const [vehScreen, setVehScreen] = useState('fleet'); // fleet | vehicle
+      const [selVehId, setSelVehId] = useState(null);
+      const [diaryScreen, setDiaryScreen] = useState('list'); // list | entry | create
+      const [selEntryId, setSelEntryId] = useState(null);
+
+      const sel = tasks.find((t) => t.id === selId) || null;
+      const selVeh = VEHICLES.find((v) => v.id === selVehId) || null;
+      const selEntry = DIARY_ENTRIES.find((e) => e.id === selEntryId) || null;
+      const project = PROJECTS.find((p) => p.id === selProjectId) || null;
+      const flash = (msg) => { setToast(msg); clearTimeout(flash._t); flash._t = setTimeout(() => setToast(null), 2600); };
+
+      const open = (t) => { setSelId(t.id); setScreen('detail'); };
+      const goCreate = () => setScreen('create');
+      const goList = () => setScreen('list');
+      const openVeh = (v) => { setSelVehId(v.id); setVehScreen('vehicle'); };
+      const goFleet = () => setVehScreen('fleet');
+      const openEntry = (e) => { setSelEntryId(e.id); setDiaryScreen('entry'); };
+      const goDiaryList = () => setDiaryScreen('list');
+      const goHub = () => setEntry('hub');
+
+      const pickProject = (p) => { setSelProjectId(p.id); setEntry('hub'); };
+      const enterSection = (n) => {
+        setNav(n);
+        if (n === 'aufgaben') setScreen('list');
+        if (n === 'fahrzeuge') setVehScreen('fleet');
+        if (n === 'bautagebuch') setDiaryScreen('list');
+        setEntry('app');
+      };
+
+      const goNav = (n) => {
+        setNav(n);
+        if (n === 'aufgaben') setScreen('list');
+        if (n === 'fahrzeuge') setVehScreen('fleet');
+        if (n === 'bautagebuch') setDiaryScreen('list');
+      };
+
+      const createTask = (data) => {
+        const t = {
+          id: uid(), title: data.title, priority: data.priority,
+          due: data.dueLabel, when: data.when, ort: data.ort || '—',
+          by: ME, done: false, description: data.description, labels: data.labels || [],
+          photo: data.photo,
+        };
+        setTasks((list) => [t, ...list]);
+        setScreen('list');
+        flash('Aufgabe erstellt ✓');
+      };
+      const completeTask = (id) => {
+        setTasks((list) => list.map((t) => t.id === id ? { ...t, done: true } : t));
+      };
+
+      let screenKey, body, caption;
+      if (entry === 'projects') {
+        screenKey = 'projects';
+        body = <ProjectsScreen onOpen={pickProject}/>;
+        caption = 'Projekt wählen';
+      } else if (entry === 'hub') {
+        screenKey = 'hub-' + (selProjectId || '');
+        body = <ProjectHubScreen project={project} onBack={() => setEntry('projects')} onPick={enterSection}/>;
+        caption = 'Projekt';
+      } else if (nav === 'aufgaben') {
+        screenKey = 'a-' + screen + (selId || '');
+        body = screen === 'detail' && sel ? <DetailScreen t={sel} onBack={goList} onComplete={completeTask}/>
+          : screen === 'create' ? <CreateScreen onBack={goList} onCreate={createTask}/>
+          : <ListScreen tasks={tasks} project={project} onOpen={open} onCreate={goCreate} onNav={goNav} onHub={goHub}/>;
+        caption = 'Aufgaben — Liste · Detail';
+      } else if (nav === 'fahrzeuge') {
+        screenKey = 'v-' + vehScreen + (selVehId || '');
+        body = vehScreen === 'vehicle' && selVeh
+          ? <VehicleScreen v={selVeh} onBack={goFleet} onToast={flash}/>
+          : <FleetScreen project={project} onOpen={openVeh} onNav={goNav} onHub={goHub}/>;
+        caption = 'Fahrzeuge — Wartungsbuch (Feldansicht)';
+      } else if (nav === 'bautagebuch') {
+        screenKey = 'b-' + diaryScreen + (selEntryId || '');
+        body = diaryScreen === 'entry' && selEntry
+          ? <DiaryEntryScreen e={selEntry} onBack={goDiaryList}/>
+          : diaryScreen === 'create'
+          ? <DiaryCreateScreen onBack={goDiaryList} onSave={() => { setDiaryScreen('list'); flash('Eintrag rechtssicher gespeichert ✓'); }}/>
+          : <DiaryScreen project={project} entries={DIARY_ENTRIES} onOpen={openEntry} onCreate={() => setDiaryScreen('create')} onNav={goNav} onHub={goHub}/>;
+        caption = 'Bautagebuch — Feldansicht';
+      } else {
+        screenKey = 'p';
+        body = <ProfilScreen project={project} onNav={goNav} onHub={goHub}/>;
+        caption = 'Profil';
+      }
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+          <AndroidDevice deviceBg="#fff" screenBg={FT.gray50} statusBarBg={SIGNAL} statusBarDark={true}>
+            <div style={{ width: '100%', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0, background: FT.gray50 }}>
+              <div key={screenKey} data-screen-anim data-screen-label={screenKey} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, animation: 'scrIn 220ms ease' }}>
+                {body}
+              </div>
+              {toast ? (
+                <div style={{
+                  position: 'absolute', bottom: 88, left: '50%', transform: 'translateX(-50%)',
+                  background: FT.navy, color: '#fff', padding: '12px 18px', borderRadius: 12,
+                  fontSize: 14.5, fontWeight: 700, boxShadow: '0 8px 24px rgba(15,43,70,0.3)',
+                  display: 'inline-flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap', zIndex: 30,
+                  animation: 'toastIn 200ms ease',
+                }}>
+                  <Icon name="check-circle" size={18} color={FT.success} strokeWidth={2.4}/>{toast}
+                </div>
+              ) : null}
+            </div>
+          </AndroidDevice>
+          <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+            Fendrel · Klickbarer Prototyp — {caption}
+          </div>
+        </div>
+      );
+    }
+
+    // Eyebrow back-to-hub button shown in section headers.
+    function HubBack({ project, onHub }) {
+      return (
+        <button onClick={onHub} style={{
+          appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: FT.font,
+          display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 40,
+          padding: '8px 14px 8px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.14)', color: '#fff',
+        }}>
+          <Icon name="arrow-left" size={20} color="#fff" strokeWidth={2.4}/>
+          <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 230 }}>{project ? project.name : 'Projekte'}</span>
+        </button>
+      );
+    }
+
+    /* ════════════════════════════ PROJECTS (Entry) ═══════════════════════ */
+    function ProjectsScreen({ onOpen }) {
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', padding: '12px 16px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Angemeldet als {ME.name}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.3 }}>Projekt wählen</div>
+              </div>
+              <Avatar name={ME.name} color={ME.color} size={42} ring="rgba(255,255,255,0.25)"/>
+            </div>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '14px 14px 18px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: FT.gray500, textTransform: 'uppercase', letterSpacing: 0.6, margin: '2px 2px' }}>{PROJECTS.length} Projekte</div>
+            {PROJECTS.map((p) => <ProjectCard key={p.id} p={p} onClick={() => onOpen(p)}/>)}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 0 2px', color: FT.gray400 }}>
+              <Icon name="info" size={14} color={FT.gray400}/>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Wähle dein Projekt, um zu starten.</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ProjectCard({ p, onClick }) {
+      const tint = p.color + '1A';
+      return (
+        <button onClick={onClick} style={{
+          appearance: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', background: '#fff',
+          borderRadius: 16, border: `1px solid ${FT.gray200}`, padding: '15px 16px', fontFamily: FT.font,
+          boxShadow: '0 1px 2px rgba(15,43,70,0.04)', display: 'flex', flexDirection: 'column', gap: 11,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: tint, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={p.icon} size={24} color={p.color} strokeWidth={2}/>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 16.5, fontWeight: 700, color: FT.navy, lineHeight: 1.25 }}>{p.name}</div>
+              <div style={{ fontSize: 13, color: FT.gray500, marginTop: 2 }}>{p.site}</div>
+            </div>
+            <Icon name="chevron" size={20} color={FT.gray300} strokeWidth={2.4}/>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 14px', fontSize: 13.5, color: FT.gray500, fontWeight: 600 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 999, background: tint, color: p.color, fontSize: 12, fontWeight: 700 }}>{p.kind}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="checklist" size={14} color={FT.gray400}/>{p.openTasks} offen{p.urgent ? ` · ${p.urgent} dringend` : ''}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="forklift" size={14} color={FT.gray400}/>{p.vehicles} Fahrzeuge</span>
+          </div>
+        </button>
+      );
+    }
+
+    /* ══════════════════════════ PROJECT HUB ══════════════════════════════ */
+    function ProjectHubScreen({ project, onBack, onPick }) {
+      const p = project;
+      if (!p) return null;
+      const tiles = [
+        { id: 'aufgaben', icon: 'checklist', label: 'Aufgaben', sub: `${p.openTasks} offen${p.urgent ? ` · ${p.urgent} dringend` : ''}`, accent: FT.orange, bg: FT.orange50 },
+        { id: 'fahrzeuge', icon: 'forklift', label: 'Fahrzeuge', sub: `${p.vehicles} Fahrzeuge · Wartungsbuch`, accent: FT.info, bg: FT.infoLight },
+        ...(p.diary ? [{ id: 'bautagebuch', icon: 'book', label: 'Bautagebuch', sub: 'Täglicher Bauablauf · rechtssicher', accent: FT.success, bg: FT.successLight }] : []),
+        { id: 'profil', icon: 'user', label: 'Mein Profil', sub: 'Konto & Einstellungen', accent: FT.navy, bg: FT.gray100 },
+      ];
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', padding: '4px 6px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button onClick={onBack} style={tapBtn(48)}><Icon name="arrow-left" size={24} color="#fff" strokeWidth={2.2}/></button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Projekt</div>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.3, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+              </div>
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginLeft: 54, marginTop: 3, fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
+              <Icon name="pin" size={14} color="rgba(255,255,255,0.7)"/>{p.site}
+            </div>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: FT.gray500, textTransform: 'uppercase', letterSpacing: 0.6, margin: '0 2px 2px' }}>Bereich wählen</div>
+            {tiles.map((t) => (
+              <button key={t.id} onClick={() => onPick(t.id)} style={{
+                appearance: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', background: '#fff',
+                borderRadius: 16, border: `1px solid ${FT.gray200}`, padding: '16px', fontFamily: FT.font,
+                boxShadow: '0 1px 2px rgba(15,43,70,0.04)', display: 'flex', alignItems: 'center', gap: 15,
+              }}>
+                <div style={{ width: 54, height: 54, borderRadius: 14, flexShrink: 0, background: t.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={t.icon} size={27} color={t.accent} strokeWidth={2}/>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 17.5, fontWeight: 800, color: FT.navy }}>{t.label}</div>
+                  <div style={{ fontSize: 13.5, color: FT.gray500, marginTop: 2 }}>{t.sub}</div>
+                </div>
+                <Icon name="chevron" size={22} color={FT.gray300} strokeWidth={2.4}/>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* ════════════════════════════════ LIST ════════════════════════════════ */
+    function ListScreen({ tasks, project, onOpen, onCreate, onNav, onHub }) {
+      const [tab, setTab] = useState('todo');
+      const todo = tasks.filter((t) => !t.done);
+      const done = tasks.filter((t) => t.done);
+      const today = todo.filter((t) => t.when === 'today');
+      const week = todo.filter((t) => t.when === 'week');
+      const urgentToday = today.filter((t) => t.priority === 'urgent').length;
+      const groups = [{ label: 'Heute', items: today }, { label: 'Diese Woche', items: week }].filter((g) => g.items.length);
+
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50, position: 'relative' }}>
+          {/* App bar */}
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', padding: '8px 16px 14px' }}>
+            <HubBack project={project} onHub={onHub}/>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.3, marginTop: 4 }}>Meine Aufgaben</div>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ flexShrink: 0, background: '#fff', borderBottom: `1px solid ${FT.gray200}`, padding: '10px 14px', display: 'flex', gap: 8 }}>
+            <Tab active={tab === 'todo'} onClick={() => setTab('todo')} label="Zu erledigen" count={todo.length}/>
+            <Tab active={tab === 'done'} onClick={() => setTab('done')} label="Erledigt" count={done.length}/>
+          </div>
+
+          {/* List */}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '4px 14px 96px' }}>
+            {tab === 'todo' ? (
+              groups.map((g) => (
+                <div key={g.label} style={{ marginTop: 14 }}>
+                  <GroupHead label={g.label} count={g.items.length}/>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {g.items.map((it) => <TaskCard key={it.id} t={it} onClick={() => onOpen(it)}/>)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {done.map((it) => <DoneCard key={it.id} t={it}/>)}
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '18px 0 4px', color: FT.gray400 }}>
+              <Icon name="check-circle" size={15} color={FT.gray400}/>
+              <span style={{ fontSize: 12.5, fontWeight: 600 }}>Das ist alles für jetzt.</span>
+            </div>
+          </div>
+
+          {tab === 'todo' ? <CreateFab onClick={onCreate} label="Neue Aufgabe"/> : null}
+        </div>
+      );
+    }
+
+    // Floating create button (replaces bottom nav for per-section create).
+    function CreateFab({ onClick, label }) {
+      return (
+        <button onClick={onClick} title={label} style={{
+          position: 'absolute', right: 18, bottom: 20, width: 60, height: 60, borderRadius: 999,
+          appearance: 'none', border: 'none', cursor: 'pointer', background: FT.orange, color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 8px 22px rgba(249,115,22,0.4)', zIndex: 20,
+        }}>
+          <Icon name="plus" size={28} color="#fff" strokeWidth={2.6}/>
+        </button>
+      );
+    }
+
+    function PriorityPill({ priority, big }) {
+      const p = PRIO[priority];
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: big ? '5px 11px' : '3px 9px', borderRadius: 999, background: p.bg, color: p.fg, fontSize: big ? 13 : 11.5, fontWeight: 800 }}>
+          <span style={{ width: big ? 8 : 6, height: big ? 8 : 6, borderRadius: 999, background: p.stripe }}/>{p.label}
+        </span>
+      );
+    }
+
+    function TaskCard({ t, onClick }) {
+      const p = PRIO[t.priority];
+      const dueUrgent = t.when === 'today' && t.priority === 'urgent';
+      return (
+        <button onClick={onClick} style={{
+          appearance: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
+          background: '#fff', borderRadius: 16, border: `1px solid ${FT.gray200}`,
+          padding: '15px 16px', fontFamily: FT.font, boxShadow: '0 1px 2px rgba(15,43,70,0.04)',
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          {/* Priority + due */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 999, background: p.stripe, flexShrink: 0 }}/>
+            <span style={{ fontSize: 12, fontWeight: 800, color: p.pill ? p.fg : FT.gray400, letterSpacing: 0.3, textTransform: 'uppercase' }}>{p.label}</span>
+            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 9,
+              background: dueUrgent ? FT.errorLight : FT.gray100, color: dueUrgent ? FT.errorDark : FT.gray600, fontSize: 12.5, fontWeight: 700 }}>
+              <Icon name="clock" size={13} color={dueUrgent ? FT.error : FT.gray500} strokeWidth={2.2}/>{t.due}
+            </span>
+          </div>
+          {/* Title */}
+          <div style={{ fontSize: 16.5, fontWeight: 700, color: FT.navy, lineHeight: 1.32 }}>{t.title}</div>
+          {/* Location */}
+          {t.ort && t.ort !== '—' ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13.5, color: FT.gray500, fontWeight: 600 }}>
+              <Icon name="pin" size={14} color={FT.gray400}/>{t.ort}
+            </div>
+          ) : null}
+        </button>
+      );
+    }
+
+    function DoneCard({ t }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, background: '#fff', borderRadius: 16, border: `1px solid ${FT.gray200}`, padding: '14px 15px' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 999, flexShrink: 0, background: FT.successLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="check" size={19} color={FT.success} strokeWidth={3}/>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: FT.gray600, lineHeight: 1.3 }}>{t.title}</div>
+            <div style={{ fontSize: 13, color: FT.gray400, marginTop: 2 }}>{t.due} · {t.ort}</div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══════════════════════════════ DETAIL ═══════════════════════════════ */
+    function DetailScreen({ t, onBack, onComplete }) {
+      const [phase, setPhase] = useState(t.done ? 'fertig' : 'neu'); // neu | aktiv | fertig
+      const p = PRIO[t.priority];
+
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          {/* App bar — signal theme */}
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', display: 'flex', alignItems: 'center', padding: '4px 6px 10px' }}>
+            <button onClick={onBack} style={tapBtn(48)}><Icon name="arrow-left" size={24} color="#fff" strokeWidth={2.2}/></button>
+            <div style={{ flex: 1, fontSize: 18, fontWeight: 600 }}>Aufgabe</div>
+            <button style={{ ...tapBtn(48), width: 'auto', padding: '0 12px', gap: 6, flexDirection: 'row' }}>
+              <Icon name="info" size={20} color="rgba(255,255,255,0.85)"/>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>Hilfe</span>
+            </button>
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <PhaseBanner phase={phase} t={t}/>
+            <div style={{ padding: '0 16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Priority + ref-ish */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 13px', borderRadius: 999, background: p.bg, color: p.fg, fontSize: 14, fontWeight: 800 }}>
+                  {t.priority === 'urgent' ? <Icon name="warning" size={16} color={p.fg} strokeWidth={2.4}/> : null}{p.label}
+                </span>
+              </div>
+              <h1 style={{ margin: 0, fontSize: 23, fontWeight: 800, lineHeight: 1.25, letterSpacing: -0.3, color: FT.navy }}>{t.title}</h1>
+
+              {/* Deadline */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: 15, borderRadius: 14, background: t.priority === 'urgent' ? FT.errorLight : FT.gray100, border: `1px solid ${t.priority === 'urgent' ? '#FCA5A5' : FT.gray200}` }}>
+                <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="clock" size={24} color={t.priority === 'urgent' ? FT.error : FT.gray500} strokeWidth={2.2}/>
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: t.priority === 'urgent' ? FT.errorDark : FT.gray500, textTransform: 'uppercase', letterSpacing: 0.5 }}>Fällig</div>
+                  <div style={{ fontSize: 19, fontWeight: 800, color: FT.navy, marginTop: 2, lineHeight: 1.2 }}>{t.due}</div>
+                </div>
+              </div>
+
+              {/* Who & where */}
+              <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${FT.gray200}`, overflow: 'hidden' }}>
+                <InfoRow icon={<Avatar name={t.by.name} color={t.by.color} size={40}/>} label="Von" value={t.by.name} sub={t.by.role || 'Team'}/>
+                <div style={{ height: 1, background: FT.gray100 }}/>
+                <InfoRow icon={<IconBox name="pin"/>} label="Wo" value={t.ort && t.ort !== '—' ? t.ort : 'Kein Ort angegeben'} sub={t.ort && t.ort !== '—' ? 'Auf der Baustelle' : null}/>
+              </div>
+
+              {/* What to do */}
+              {t.description ? (<>
+                <SectionTitle icon="note">Das ist zu tun</SectionTitle>
+                <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${FT.gray200}`, padding: 16 }}>
+                  <div style={{ fontSize: 16, lineHeight: 1.6, color: FT.gray800 }}>{t.description}</div>
+                  {t.labels && t.labels.length ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 14 }}>
+                      {t.labels.map((l) => (
+                        <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999, background: FT.gray100, color: FT.gray700, fontSize: 13, fontWeight: 600 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: 999, background: FT.orange }}/>{l}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </>) : null}
+
+              {/* Reference photo */}
+              {t.photo ? (<>
+                <SectionTitle icon="camera">Referenzfoto</SectionTitle>
+                <PhotoTile label={`Von ${t.by.name}`}/>
+              </>) : null}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 2px', color: FT.gray500 }}>
+                <Icon name="check-circle" size={16} color={FT.success}/>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Offline gespeichert – funktioniert auch ohne Empfang.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sticky actions */}
+          <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${FT.gray200}`, padding: '12px 16px 14px', boxShadow: '0 -4px 16px rgba(15,43,70,0.06)' }}>
+            {phase === 'neu' ? (<>
+              <BigButton color={FT.orange} icon="play" label="Aufgabe starten" onClick={() => setPhase('aktiv')}/>
+              <button style={textBtn}><Icon name="comment" size={18} color={FT.gray600}/><span>Frage an {t.by.name.split(' ')[0]}</span></button>
+            </>) : phase === 'aktiv' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <BigButton color={FT.success} icon="check" label="Erledigt melden" onClick={() => { onComplete(t.id); setPhase('fertig'); }}/>
+                <BigButton outline icon="camera" label="Foto aufnehmen" onClick={() => {}}/>
+              </div>
+            ) : (
+              <BigButton color={FT.gray100} textColor={FT.gray500} icon="check" label="Erledigt ✓" onClick={onBack}/>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function PhaseBanner({ phase, t }) {
+      if (phase === 'fertig') return (
+        <div style={{ background: FT.successLight, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 999, background: FT.success, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="check" size={22} color="#fff" strokeWidth={3}/></div>
+          <div><div style={{ fontSize: 15, fontWeight: 800, color: FT.successDark }}>Erledigt – danke!</div><div style={{ fontSize: 13, color: FT.gray700, marginTop: 1 }}>{t.by.name} wird benachrichtigt.</div></div>
+        </div>
+      );
+      const aktiv = phase === 'aktiv';
+      return (
+        <div style={{ background: aktiv ? FT.infoLight : FT.orange50, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 999, background: aktiv ? FT.info : FT.orange, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={aktiv ? 'play' : 'sparkles'} size={20} color="#fff" strokeWidth={2.2}/></div>
+          <div><div style={{ fontSize: 15, fontWeight: 800, color: aktiv ? '#1D4ED8' : FT.orangeDark }}>{aktiv ? 'Du bearbeitest diese Aufgabe' : 'Neue Aufgabe für dich'}</div><div style={{ fontSize: 13, color: FT.gray700, marginTop: 1 }}>{aktiv ? 'Mach am Ende ein Foto und melde „Erledigt".' : `Zugewiesen von ${t.by.name}`}</div></div>
+        </div>
+      );
+    }
+
+    /* ═══════════════════════════════ CREATE ═══════════════════════════════ */
+    function CreateScreen({ onBack, onCreate }) {
+      const [title, setTitle] = useState('');
+      const [desc, setDesc] = useState('');
+      const [prio, setPrio] = useState('medium');
+      const [assignee, setAssignee] = useState(PEOPLE[0].name);
+      const [ort, setOrt] = useState('');
+      const [due, setDue] = useState('today');
+
+      const DUE_OPTS = [
+        { id: 'today', label: 'Heute', when: 'today' },
+        { id: 'tomorrow', label: 'Morgen', when: 'week' },
+        { id: 'week', label: 'Diese Woche', when: 'week' },
+      ];
+      const canSave = title.trim().length > 0;
+      const submit = () => {
+        if (!canSave) return;
+        const d = DUE_OPTS.find((x) => x.id === due);
+        onCreate({
+          title: title.trim(), description: desc.trim(), priority: prio,
+          ort: ort.trim(), dueLabel: d.label, when: d.when,
+          labels: [], photo: false,
+        });
+      };
+
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          {/* App bar — signal theme */}
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', display: 'flex', alignItems: 'center', padding: '4px 6px 10px' }}>
+            <button onClick={onBack} style={tapBtn(48)}><Icon name="x" size={24} color="#fff" strokeWidth={2.2}/></button>
+            <div style={{ flex: 1, fontSize: 18, fontWeight: 600 }}>Neue Aufgabe</div>
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '16px 16px 18px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Title + voice */}
+            <Field label="Was ist zu tun?" required>
+              <div style={{ position: 'relative' }}>
+                <textarea value={title} onChange={(e) => setTitle(e.target.value)} placeholder="z. B. Gerüst an Achse C prüfen"
+                  rows={2} style={{ ...inputStyle, paddingRight: 56, resize: 'none', fontSize: 17, fontWeight: 600, lineHeight: 1.4 }}/>
+                <button style={{
+                  position: 'absolute', right: 8, top: 8, width: 40, height: 40, borderRadius: 11, border: 'none',
+                  background: FT.orange50, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }} title="Per Sprache diktieren"><Icon name="mic" size={20} color={FT.orange} strokeWidth={2}/></button>
+              </div>
+              <Hint icon="mic">Tipp: Auf das Mikrofon tippen und einfach sprechen.</Hint>
+            </Field>
+
+            {/* Priority — big tappable */}
+            <Field label="Wie wichtig?">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {['urgent', 'high', 'medium', 'low'].map((k) => {
+                  const p = PRIO[k]; const on = prio === k;
+                  return (
+                    <button key={k} onClick={() => setPrio(k)} style={{
+                      appearance: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '13px 13px', borderRadius: 12, background: on ? p.bg : '#fff',
+                      border: `2px solid ${on ? p.stripe : FT.gray200}`, fontFamily: FT.font,
+                    }}>
+                      <span style={{ width: 12, height: 12, borderRadius: 999, background: p.stripe, flexShrink: 0 }}/>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: on ? p.fg : FT.gray700 }}>{p.label}</span>
+                      {on ? <Icon name="check" size={17} color={p.fg} strokeWidth={3} style={{ marginLeft: 'auto' }}/> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+
+            {/* Assignee */}
+            <Field label="Wer macht es?">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {PEOPLE.map((pp) => {
+                  const on = assignee === pp.name;
+                  return (
+                    <button key={pp.name} onClick={() => setAssignee(pp.name)} style={{
+                      appearance: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+                      padding: '7px 13px 7px 7px', borderRadius: 999, background: on ? FT.navy : '#fff',
+                      border: `1.5px solid ${on ? FT.navy : FT.gray200}`, fontFamily: FT.font,
+                    }}>
+                      <Avatar name={pp.name} color={pp.color} size={26}/>
+                      <span style={{ fontSize: 14.5, fontWeight: 700, color: on ? '#fff' : FT.navy }}>{pp.name.split(' ')[0]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+
+            {/* Where */}
+            <Field label="Wo? (optional)">
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)' }}><Icon name="pin" size={19} color={FT.gray400}/></span>
+                <input value={ort} onChange={(e) => setOrt(e.target.value)} placeholder="z. B. Nordring · Achse C" style={{ ...inputStyle, paddingLeft: 42 }}/>
+              </div>
+            </Field>
+
+            {/* Due */}
+            <Field label="Bis wann?">
+              <div style={{ display: 'flex', gap: 8 }}>
+                {DUE_OPTS.map((d) => {
+                  const on = due === d.id;
+                  return (
+                    <button key={d.id} onClick={() => setDue(d.id)} style={{
+                      appearance: 'none', cursor: 'pointer', flex: 1, height: 48, borderRadius: 12,
+                      background: on ? FT.orange50 : '#fff', border: `2px solid ${on ? FT.orange : FT.gray200}`,
+                      fontFamily: FT.font, fontSize: 14.5, fontWeight: 700, color: on ? FT.orangeDark : FT.gray600,
+                    }}>{d.label}</button>
+                  );
+                })}
+              </div>
+            </Field>
+
+            {/* Description */}
+            <Field label="Mehr Details (optional)">
+              <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} placeholder="Beschreibe genauer, was zu tun ist…" style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }}/>
+            </Field>
+
+            {/* Photo */}
+            <Field label="Foto (optional)">
+              <button style={{
+                appearance: 'none', cursor: 'pointer', width: '100%', padding: '18px', borderRadius: 14,
+                background: '#fff', border: `2px dashed ${FT.gray300}`, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 8, fontFamily: FT.font,
+              }}>
+                <div style={{ width: 46, height: 46, borderRadius: 12, background: FT.gray100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="camera" size={24} color={FT.gray500} strokeWidth={2}/></div>
+                <span style={{ fontSize: 14.5, fontWeight: 700, color: FT.gray600 }}>Foto aufnehmen oder auswählen</span>
+              </button>
+            </Field>
+          </div>
+
+          {/* Sticky save */}
+          <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${FT.gray200}`, padding: '12px 16px 14px', boxShadow: '0 -4px 16px rgba(15,43,70,0.06)' }}>
+            <BigButton color={canSave ? FT.orange : FT.gray200} textColor={canSave ? '#fff' : FT.gray400} icon="check" label="Aufgabe erstellen" onClick={submit}/>
+          </div>
+        </div>
+      );
+    }
+
+    /* ══════════════════════════════ FLEET (Fahrzeuge) ════════════════════ */
+    function FleetScreen({ project, onOpen, onNav, onHub }) {
+      const uvvCount = VEHICLES.filter((v) => v.status === 'uvv_faellig').length;
+      const lockCount = VEHICLES.filter((v) => v.status === 'gesperrt').length;
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          {/* App bar */}
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', padding: '8px 16px 14px' }}>
+            <HubBack project={project} onHub={onHub}/>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.3, marginTop: 4 }}>Fahrzeuge</div>
+            <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 9, padding: '8px 13px', borderRadius: 12, background: SIGNAL_CHIP }}>
+              <Icon name="shield" size={17} color="#fff" strokeWidth={2.2}/>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>
+                {VEHICLES.length} Fahrzeuge{uvvCount ? ` · ${uvvCount} UVV fällig` : ''}{lockCount ? ` · ${lockCount} gesperrt` : ''}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '14px 14px 18px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+            {VEHICLES.map((v) => <VehicleCard key={v.id} v={v} onClick={() => onOpen(v)}/>)}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0 2px', color: FT.gray400 }}>
+              <Icon name="info" size={14} color={FT.gray400}/>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Tippe ein Fahrzeug für das Wartungsbuch.</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function VehicleCard({ v, onClick }) {
+      const st = VSTATUS[v.status];
+      const uvvTone = v.uvvIn == null ? null : v.uvvIn <= 7 ? 'error' : v.uvvIn <= 14 ? 'warn' : null;
+      const uvvBg = uvvTone === 'error' ? FT.errorLight : uvvTone === 'warn' ? FT.warningLight : FT.gray100;
+      const uvvFg = uvvTone === 'error' ? FT.errorDark : uvvTone === 'warn' ? FT.warningDark : FT.gray600;
+      const uvvIc = uvvTone === 'error' ? FT.error : uvvTone === 'warn' ? FT.warning : FT.gray500;
+      return (
+        <button onClick={onClick} style={{
+          appearance: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
+          background: '#fff', borderRadius: 16, border: `1px solid ${FT.gray200}`,
+          padding: '15px 16px', fontFamily: FT.font, boxShadow: '0 1px 2px rgba(15,43,70,0.04)',
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          {/* Status + UVV */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 999, background: st.dot, flexShrink: 0 }}/>
+            <span style={{ fontSize: 12, fontWeight: 800, color: st.fg, letterSpacing: 0.3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{st.label}</span>
+            <span style={{ marginLeft: 'auto', flexShrink: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 9,
+              background: uvvBg, color: uvvFg, fontSize: 12.5, fontWeight: 700 }}>
+              <Icon name="shield" size={13} color={uvvIc} strokeWidth={2.2}/>UVV {v.uvvIn != null ? `${v.uvvIn} T` : '—'}
+            </span>
+          </div>
+          {/* Title */}
+          <div style={{ fontSize: 16.5, fontWeight: 700, color: FT.navy, lineHeight: 1.32 }}>
+            <span style={{ fontFamily: FT.mono }}>{v.geraetenr}</span> · {v.hersteller} {v.modell}
+          </div>
+          {/* Meta */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 14px', fontSize: 13.5, color: FT.gray500, fontWeight: 600 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="pin" size={14} color={FT.gray400}/>{v.halle}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="gauge" size={14} color={FT.gray400}/>{v.betriebsstunden.toLocaleString('de-CH')} h</span>
+            {v.offeneMaengel > 0 ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: FT.errorDark }}>
+                <Icon name="warning" size={14} color={FT.error}/>{v.offeneMaengel} {v.offeneMaengel === 1 ? 'Mangel' : 'Mängel'}
+              </span>
+            ) : null}
+          </div>
+        </button>
+      );
+    }
+
+    function StatCell({ icon, value, label, tone, mono = true }) {
+      const c = tone === 'error' ? FT.errorDark : tone === 'warn' ? FT.warningDark : FT.gray600;
+      const bg = tone === 'error' ? FT.errorLight : tone === 'warn' ? FT.warningLight : FT.gray50;
+      return (
+        <div style={{ background: bg, borderRadius: 10, padding: '8px 9px', display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Icon name={icon} size={13} color={c}/>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: c, textTransform: 'uppercase', letterSpacing: 0.3 }}>{label}</span>
+          </div>
+          <span style={{ fontFamily: mono ? FT.mono : FT.font, fontSize: mono ? 15 : 13.5, fontWeight: 700, color: tone ? c : FT.navy, lineHeight: 1.25, whiteSpace: mono ? 'nowrap' : 'normal', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
+        </div>
+      );
+    }
+
+    function StatusPill({ status, big }) {
+      const st = VSTATUS[status];
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: big ? '5px 11px' : '3px 9px', borderRadius: 999, background: st.bg, color: st.fg, fontSize: big ? 13 : 11.5, fontWeight: 800 }}>
+          <span style={{ width: big ? 8 : 6, height: big ? 8 : 6, borderRadius: 999, background: st.dot }}/>{st.label}
+        </span>
+      );
+    }
+
+    /* ══════════════════════════ VEHICLE (Wartungsbuch) ═══════════════════ */
+    function VehicleScreen({ v, onBack, onToast }) {
+      const [section, setSection] = useState('betrieb');
+      const [adding, setAdding] = useState(false);
+      const st = VSTATUS[v.status];
+      const sec = VSECTIONS.find((s) => s.id === section);
+      const rows = v.log[section] || [];
+
+      React.useEffect(() => { setAdding(false); }, [section]);
+
+      const blocked = v.status === 'gesperrt';
+      const critMangel = (v.log.maengel || []).find((m) => m.schwere === 'K' && !m.behoben);
+
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          {/* App bar */}
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', padding: '4px 6px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button onClick={onBack} style={tapBtn(48)}><Icon name="arrow-left" size={24} color="#fff" strokeWidth={2.2}/></button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.15 }}>{v.geraetenr} · {v.modell}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>Wartungsbuch · {v.hersteller}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            {/* Status banner — plausibility style */}
+            {blocked ? (
+              <Banner tone={SEV.K} title="Fahrzeug gesperrt" sub={critMangel ? critMangel.desc : 'Kritischer Mangel — Betrieb untersagt.'} icon="lock"/>
+            ) : v.status === 'uvv_faellig' ? (
+              <Banner tone={SEV.G} title="UVV-Prüfung fällig" sub={`In ${v.uvvIn} Tagen · ${v.uvvDate}`} icon="shield"/>
+            ) : (
+              <Banner tone={{ color: FT.success, light: FT.successLight, dark: FT.successDark }} title="Betriebsbereit" sub={`Nächste UVV: ${v.uvvDate} · in ${v.uvvIn} Tagen`} icon="check-circle"/>
+            )}
+
+            <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Key figures */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9 }}>
+                <BigStat icon="gauge" value={v.betriebsstunden.toLocaleString('de-CH')} label="Betriebsstd." />
+                <BigStat icon="shield" value={v.uvvIn != null ? `${v.uvvIn} T` : '—'} label="bis UVV" tone={v.uvvIn <= 7 ? 'error' : v.uvvIn <= 14 ? 'warn' : 'ok'}/>
+                <BigStat icon="warning" value={String(v.offeneMaengel)} label="off. Mängel" tone={v.offeneMaengel ? 'error' : 'ok'}/>
+              </div>
+
+              {/* Stammdaten quick facts */}
+              <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${FT.gray200}`, overflow: 'hidden' }}>
+                <FactRow icon="pin" label="Standort" value={v.halle}/>
+                <div style={{ height: 1, background: FT.gray100 }}/>
+                <FactRow icon="user" label="Verantwortlich" value={v.verantwortlich}/>
+              </div>
+
+              {/* Section chips */}
+              <div>
+                <SectionTitle icon="note">Wartungsbuch</SectionTitle>
+                <div style={{ display: 'flex', gap: 7, marginTop: 10, overflowX: 'auto', paddingBottom: 2 }}>
+                  {VSECTIONS.map((s) => {
+                    const on = s.id === section;
+                    const n = (v.log[s.id] || []).length;
+                    return (
+                      <button key={s.id} onClick={() => setSection(s.id)} style={{
+                        appearance: 'none', cursor: 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 7,
+                        padding: '8px 13px', borderRadius: 999, fontFamily: FT.font, fontSize: 13.5, fontWeight: 700,
+                        background: on ? FT.navy : '#fff', color: on ? '#fff' : FT.gray600, border: `1.5px solid ${on ? FT.navy : FT.gray200}`,
+                      }}>
+                        <Icon name={s.icon} size={15} color={on ? (s.id === 'maengel' ? '#fff' : FT.orange300) : FT.gray400} strokeWidth={2}/>
+                        {s.label}
+                        {n ? <span style={{ fontFamily: FT.mono, fontSize: 11, fontWeight: 700, color: on ? 'rgba(255,255,255,0.7)' : FT.gray400 }}>{n}</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add (inline) */}
+              {adding ? (
+                <VehicleAddForm sec={sec} v={v} onClose={() => setAdding(false)} onSave={() => { setAdding(false); onToast(sec.add.replace(/erfassen|dokumentieren|melden/, '').trim() + ' gespeichert ✓'); }}/>
+              ) : (
+                <button onClick={() => setAdding(true)} style={{
+                  appearance: 'none', cursor: 'pointer', width: '100%', height: 50, borderRadius: 13, border: 'none',
+                  background: section === 'maengel' ? FT.error : FT.orange, color: '#fff', fontFamily: FT.font, fontSize: 15.5, fontWeight: 800,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+                  boxShadow: '0 2px 8px rgba(15,43,70,0.12)',
+                }}>
+                  <Icon name={section === 'maengel' ? 'warning' : 'plus'} size={20} color="#fff" strokeWidth={2.4}/>{sec.add}
+                </button>
+              )}
+
+              {/* Recent entries */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: FT.gray500, textTransform: 'uppercase', letterSpacing: 0.5, margin: '2px 2px 10px' }}>Letzte Einträge</div>
+                {rows.length ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                    {rows.map((r, i) => <VehicleEntry key={i} section={section} r={r}/>)}
+                  </div>
+                ) : (
+                  <div style={{ padding: '22px 12px', textAlign: 'center', fontSize: 13, color: FT.gray400, background: '#fff', borderRadius: 12, border: `1px dashed ${FT.gray300}` }}>Noch keine Einträge.</div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '2px 2px', color: FT.gray500 }}>
+                <Icon name="check-circle" size={16} color={FT.success}/>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Einträge sind UVV-konform & revisionssicher protokolliert.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Banner({ tone, title, sub, icon }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '13px 16px', background: tone.light, borderLeft: `3px solid ${tone.color}` }}>
+          <div style={{ width: 34, height: 34, borderRadius: 999, flexShrink: 0, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={icon} size={19} color={tone.color} strokeWidth={2.2}/>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: tone.dark }}>{title}</div>
+            <div style={{ fontSize: 13, color: FT.gray700, marginTop: 1, lineHeight: 1.4 }}>{sub}</div>
+          </div>
+        </div>
+      );
+    }
+
+    function BigStat({ icon, value, label, tone }) {
+      const c = tone === 'error' ? FT.errorDark : tone === 'warn' ? FT.warningDark : FT.navy;
+      const bg = tone === 'error' ? FT.errorLight : tone === 'warn' ? FT.warningLight : '#fff';
+      const bd = tone === 'error' ? '#FCA5A5' : tone === 'warn' ? '#FCD34D' : FT.gray200;
+      return (
+        <div style={{ background: bg, borderRadius: 13, border: `1px solid ${bd}`, padding: '11px 11px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <Icon name={icon} size={17} color={c} strokeWidth={2}/>
+          <span style={{ fontFamily: FT.mono, fontSize: 19, fontWeight: 800, color: c, lineHeight: 1 }}>{value}</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: FT.gray500 }}>{label}</span>
+        </div>
+      );
+    }
+
+    function FactRow({ icon, label, value }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 15px' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: FT.gray100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={icon} size={18} color={FT.gray600} strokeWidth={2}/></div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: FT.gray500, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: FT.navy, marginTop: 1 }}>{value}</div>
+          </div>
+        </div>
+      );
+    }
+
+    function VehicleEntry({ section, r }) {
+      let title, sub, right;
+      if (section === 'betrieb') { title = `${Number(r.stand).toLocaleString('de-CH')} h`; sub = `${r.diff} · ${r.by}${r.note ? ' · ' + r.note : ''}`; right = r.datum; }
+      else if (section === 'wartung') { title = r.art; sub = `${r.pruefer} · ${r.ergebnis}`; right = r.datum; }
+      else if (section === 'reparatur') { title = r.desc; sub = `${r.by} · ${r.kosten}`; right = r.datum; }
+      else if (section === 'maengel') { title = r.desc; sub = r.behoben ? `behoben ${r.behoben}` : 'offen · ' + SEV[r.schwere].label; right = r.datum; }
+      else if (section === 'einweisung') { title = r.name; sub = `${r.abt} · Schein ${r.schein}`; right = `gültig ${r.gueltig}`; }
+      const sev = section === 'maengel' ? SEV[r.schwere] : null;
+      const accent = sev ? sev.color : section === 'wartung' ? FT.success : section === 'reparatur' ? FT.info : FT.navy;
+      return (
+        <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${FT.gray200}`, borderLeft: `4px solid ${accent}`, padding: '12px 13px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: FT.navy, lineHeight: 1.3 }}>{title}</div>
+              <div style={{ fontSize: 12.5, color: FT.gray500, marginTop: 3 }}>{sub}</div>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+              <span style={{ fontSize: 11.5, color: FT.gray400, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{right}</span>
+              {sev ? <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 999, background: sev.color, color: '#fff', fontSize: 11, fontWeight: 800 }}>{sev.code}</span> : null}
+              {section === 'wartung' ? <Icon name="check-circle" size={17} color={FT.success}/> : null}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Inline schema-ish add form for a maintenance section ────────────────
+    function VehicleAddForm({ sec, v, onClose, onSave }) {
+      const isMangel = sec.id === 'betrieb';
+      const [stand, setStand] = useState(sec.id === 'betrieb' ? String(v.betriebsstunden + 60) : '');
+      const [text, setText] = useState('');
+      const [sev, setSev] = useState('O');
+      const fields = {
+        betrieb:    { lab: 'Neuer Zählerstand (h)', ph: 'z. B. ' + (v.betriebsstunden + 60), mono: true },
+        wartung:    { lab: 'Art der Prüfung', ph: 'z. B. UVV-Prüfung (jährlich)' },
+        reparatur:  { lab: 'Beschreibung / ersetzte Teile', ph: 'Was wurde repariert?' },
+        maengel:    { lab: 'Was ist defekt?', ph: 'Mangel kurz beschreiben' },
+        einweisung: { lab: 'Name, Vorname', ph: 'z. B. Roth, Markus' },
+      }[sec.id];
+      const primary = sec.id === 'betrieb' ? stand : text;
+
+      return (
+        <div style={{ background: '#fff', borderRadius: 14, border: `1.5px solid ${sec.id === 'maengel' ? '#FCA5A5' : FT.orange200}`, overflow: 'hidden', boxShadow: '0 4px 16px rgba(15,43,70,0.1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 14px', background: sec.id === 'maengel' ? FT.errorLight : FT.orange50, borderBottom: `1px solid ${sec.id === 'maengel' ? '#FCA5A5' : FT.orange100}` }}>
+            <Icon name={sec.icon} size={17} color={sec.id === 'maengel' ? FT.error : FT.orange} strokeWidth={2.2}/>
+            <span style={{ fontSize: 14.5, fontWeight: 800, color: sec.id === 'maengel' ? FT.errorDark : FT.orangeDark }}>{sec.add}</span>
+            <button onClick={onClose} style={{ marginLeft: 'auto', appearance: 'none', border: 'none', background: 'transparent', cursor: 'pointer', display: 'inline-flex' }}>
+              <Icon name="x" size={18} color={sec.id === 'maengel' ? FT.errorDark : FT.orangeDark}/>
+            </button>
+          </div>
+          <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 13 }}>
+            {sec.id === 'maengel' ? (
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: FT.navy, marginBottom: 8 }}>Schweregrad</div>
+                <div style={{ display: 'flex', gap: 7 }}>
+                  {Object.values(SEV).map((s) => {
+                    const on = sev === s.code;
+                    return (
+                      <button key={s.code} onClick={() => setSev(s.code)} style={{
+                        appearance: 'none', cursor: 'pointer', flex: 1, padding: '10px 4px', borderRadius: 11,
+                        border: `2px solid ${on ? s.color : FT.gray200}`, background: on ? s.light : '#fff', fontFamily: FT.font,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                      }}>
+                        <span style={{ width: 26, height: 26, borderRadius: 999, background: s.color, color: '#fff', fontSize: 13, fontWeight: 800, lineHeight: '26px', textAlign: 'center' }}>{s.code}</span>
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: on ? s.dark : FT.gray600 }}>{s.label}</span>
+                        <span style={{ fontSize: 10, color: FT.gray500 }}>{s.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: FT.navy, marginBottom: 8 }}>{fields.lab}</div>
+              {sec.id === 'reparatur' || sec.id === 'maengel' ? (
+                <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={fields.ph}
+                  style={{ width: '100%', boxSizing: 'border-box', border: `1.5px solid ${FT.gray300}`, borderRadius: 12, padding: '12px 13px', fontFamily: FT.font, fontSize: 15.5, color: FT.navy, outline: 'none', resize: 'none', lineHeight: 1.4 }}/>
+              ) : sec.id === 'betrieb' ? (
+                <input value={stand} onChange={(e) => setStand(e.target.value)} inputMode="numeric" placeholder={fields.ph}
+                  style={{ width: '100%', boxSizing: 'border-box', height: 48, border: `1.5px solid ${FT.gray300}`, borderRadius: 12, padding: '0 14px', fontFamily: FT.mono, fontSize: 18, fontWeight: 700, color: FT.navy, outline: 'none' }}/>
+              ) : (
+                <input value={text} onChange={(e) => setText(e.target.value)} placeholder={fields.ph}
+                  style={{ width: '100%', boxSizing: 'border-box', height: 48, border: `1.5px solid ${FT.gray300}`, borderRadius: 12, padding: '0 14px', fontFamily: FT.font, fontSize: 15.5, color: FT.navy, outline: 'none' }}/>
+              )}
+            </div>
+
+            {/* Photo proof */}
+            <button style={{
+              appearance: 'none', cursor: 'pointer', width: '100%', padding: '14px', borderRadius: 12,
+              background: FT.gray50, border: `2px dashed ${FT.gray300}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, fontFamily: FT.font,
+            }}>
+              <Icon name="camera" size={20} color={FT.gray500} strokeWidth={2}/>
+              <span style={{ fontSize: 14.5, fontWeight: 700, color: FT.gray600 }}>Foto als Nachweis</span>
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', borderRadius: 11, background: FT.gray50 }}>
+              <Avatar name={ME.name} color={ME.color} size={26}/>
+              <span style={{ fontSize: 13, color: FT.gray600 }}>Erfasst als <b style={{ color: FT.navy }}>{ME.name}</b> · {v.geraetenr}</span>
+            </div>
+
+            <BigButton color={primary && primary.trim() ? (sec.id === 'maengel' ? FT.error : FT.orange) : FT.gray200}
+              textColor={primary && primary.trim() ? '#fff' : FT.gray400} icon="check" label="Eintrag speichern"
+              onClick={() => { if (primary && primary.trim()) onSave(); }}/>
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══════════════════════════ BAUTAGEBUCH ═════════════════════════════ */
+    function DiaryScreen({ project, entries, onOpen, onCreate, onNav, onHub }) {
+      return (
+        <div style={{ width: '100%', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          {/* App bar */}
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', padding: '8px 16px 14px' }}>
+            <HubBack project={project} onHub={onHub}/>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.3, marginTop: 4 }}>Bautagebuch</div>
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '14px 14px 96px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: FT.gray500, textTransform: 'uppercase', letterSpacing: 0.6, margin: '2px 2px 0' }}>Frühere Einträge</div>
+            {entries.map((e) => <DiaryCard key={e.id} e={e} onClick={() => onOpen(e)}/>)}
+          </div>
+
+          <CreateFab onClick={onCreate} label="Neuer Eintrag"/>
+        </div>
+      );
+    }
+
+    function DiaryStatusBadge({ status }) {
+      if (status === 'synced') return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 999, background: FT.successLight, color: FT.successDark, fontSize: 11.5, fontWeight: 700 }}>
+          <Icon name="check-circle" size={12} color={FT.success} strokeWidth={2.4}/>Synchron
+        </span>
+      );
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 999, background: FT.warningLight, color: FT.warningDark, fontSize: 11.5, fontWeight: 700 }}>
+          <Icon name="refresh" size={12} color={FT.warning} strokeWidth={2.4}/>Wird synchronisiert
+        </span>
+      );
+    }
+
+    function DiaryCard({ e, onClick }) {
+      const w = WEATHER[e.weather];
+      return (
+        <button onClick={onClick} style={{
+          appearance: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', background: '#fff',
+          borderRadius: 16, border: `1px solid ${FT.gray200}`, padding: '15px 16px', fontFamily: FT.font,
+          boxShadow: '0 1px 2px rgba(15,43,70,0.04)', display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="calendar" size={15} color={FT.gray400}/>
+            <span style={{ fontSize: 15, fontWeight: 800, color: FT.navy }}>{e.weekday}, {e.date}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9, background: w.bg, color: w.color, fontSize: 12.5, fontWeight: 700 }}>
+              <WIcon kind={e.weather} size={15} color={w.color}/>{w.label} · {e.tempC}°
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 9, background: FT.gray100, color: FT.gray700, fontSize: 12.5, fontWeight: 700 }}>
+              <Icon name="user" size={14} color={FT.gray500}/>{e.crew} Mann
+            </span>
+            {e.photos ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: FT.gray500, fontWeight: 600 }}>
+                <Icon name="camera" size={14} color={FT.gray400}/>{e.photos}
+              </span>
+            ) : null}
+          </div>
+          {e.notiz ? (
+            <div style={{ fontSize: 13.5, color: FT.gray600, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.notiz}</div>
+          ) : null}
+        </button>
+      );
+    }
+
+    /* ── Immutable entry detail ── */
+    function DiaryEntryScreen({ e, onBack }) {
+      const w = WEATHER[e.weather];
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', display: 'flex', alignItems: 'center', padding: '4px 6px 10px' }}>
+            <button onClick={onBack} style={tapBtn(48)}><Icon name="arrow-left" size={24} color="#fff" strokeWidth={2.2}/></button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Bautagebuch</div>
+              <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.1 }}>{e.weekday}, {e.date}</div>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <Banner tone={{ color: FT.info, light: FT.infoLight, dark: '#1E40AF' }} icon="lock"
+              title="Rechtssicher protokolliert"
+              sub={`Zeitstempel & GPS unveränderbar · erfasst ${e.time} Uhr`}/>
+
+            <div style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Key stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9 }}>
+                <div style={{ background: w.bg, borderRadius: 13, border: `1px solid ${FT.gray200}`, padding: '11px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <WIcon kind={e.weather} size={20} color={w.color}/>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: w.color, lineHeight: 1 }}>{w.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: FT.gray500 }}>Wetter</span>
+                </div>
+                <div style={{ background: '#fff', borderRadius: 13, border: `1px solid ${FT.gray200}`, padding: '11px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <Icon name="gauge" size={18} color={FT.navy} strokeWidth={2}/>
+                  <span style={{ fontFamily: FT.mono, fontSize: 19, fontWeight: 800, color: FT.navy, lineHeight: 1 }}>{e.tempC}°</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: FT.gray500 }}>Temperatur</span>
+                </div>
+                <div style={{ background: '#fff', borderRadius: 13, border: `1px solid ${FT.gray200}`, padding: '11px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <Icon name="user" size={18} color={FT.navy} strokeWidth={2}/>
+                  <span style={{ fontFamily: FT.mono, fontSize: 19, fontWeight: 800, color: FT.navy, lineHeight: 1 }}>{e.crew}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: FT.gray500 }}>Mannstärke</span>
+                </div>
+              </div>
+
+              {/* Notizen */}
+              {e.notiz ? (<>
+                <SectionTitle icon="note">Notizen</SectionTitle>
+                <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${FT.gray200}`, padding: '14px 16px', fontSize: 15, color: FT.gray700, lineHeight: 1.5 }}>{e.notiz}</div>
+              </>) : null}
+
+              {/* Fotos */}
+              <SectionTitle icon="camera">Fotonachweis · {e.photos}</SectionTitle>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
+                {Array.from({ length: e.photos }).map((_, i) => (
+                  <div key={i} style={{ position: 'relative', aspectRatio: '4 / 3', borderRadius: 12, overflow: 'hidden', background: 'linear-gradient(135deg, #6e7d8a, #2c3c4b)', border: `1px solid ${FT.gray200}` }}>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="image" size={26} color="rgba(255,255,255,0.5)" strokeWidth={1.6}/></div>
+                    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '6px 8px', background: 'linear-gradient(transparent, rgba(0,0,0,0.6))', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Icon name="pin" size={11} color="#fff"/>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: FT.mono }}>GPS · {e.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Audit footer */}
+              <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${FT.gray200}`, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 15px' }}>
+                  <Avatar name={e.by} color={FT.info} size={34}/>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: FT.gray500, textTransform: 'uppercase', letterSpacing: 0.4 }}>Erfasst von</div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: FT.navy }}>{e.by} · {e.time} Uhr</div>
+                  </div>
+                </div>
+                <div style={{ borderTop: `1px solid ${FT.gray100}`, padding: '11px 15px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: FT.gray500, fontFamily: FT.mono }}>
+                    <Icon name="pin" size={13} color={FT.gray400}/>GPS {e.gps}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: FT.gray500, fontFamily: FT.mono }}>
+                    <Icon name="lock" size={13} color={FT.gray400}/>SHA-256 a3f9…7c21
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '2px 2px', color: FT.gray500 }}>
+                <Icon name="pdf" size={15} color={FT.gray400}/>
+                <span style={{ fontSize: 12.5, fontWeight: 600 }}>VOB-konformer PDF-Export erfolgt im Büro (Web).</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Capture (voice-to-structure, AI suggestions require confirmation) ── */
+    function AIBeta() {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: '#EDE9FE', color: '#6D28D9', fontSize: 10.5, fontWeight: 800, whiteSpace: 'nowrap' }}>
+          🤖 KI-Vorschlag (Beta)
+        </span>
+      );
+    }
+    function DField({ label, ai, children }) {
+      return (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 14.5, fontWeight: 800, color: FT.navy }}>{label}</span>
+            {ai ? <AIBeta/> : null}
+          </div>
+          {children}
+        </div>
+      );
+    }
+
+    function DiaryCreateScreen({ onBack, onSave }) {
+      const [dictated, setDictated] = useState(false);
+      const [weather, setWeather] = useState('');
+      const [temp, setTemp] = useState('');
+      const [crew, setCrew] = useState('');
+      const [leistungen, setLeistungen] = useState(['']);
+      const [lieferungen, setLieferungen] = useState('');
+      const [vorkommnisse, setVorkommnisse] = useState('');
+      const [notiz, setNotiz] = useState('');
+      const [ai, setAi] = useState({});
+      const clearAi = (k) => setAi((s) => { if (!s[k]) return s; const n = { ...s }; delete n[k]; return n; });
+      const aiCount = Object.keys(ai).length;
+
+      const dictate = () => {
+        setWeather('bewoelkt'); setTemp('14'); setCrew('12');
+        setNotiz('Nachunternehmer Elektro nicht erschienen — telefonisch gemahnt.');
+        setAi({ weather: true, temp: true, crew: true, notiz: true });
+        setDictated(true);
+      };
+
+      const setLeistung = (i, val) => { setLeistungen((a) => a.map((x, j) => j === i ? val : x)); clearAi('leistungen'); };
+      const addLeistung = () => setLeistungen((a) => [...a, '']);
+      const canSave = weather && crew;
+
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          {/* App bar */}
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', display: 'flex', alignItems: 'center', padding: '4px 6px 10px' }}>
+            <button onClick={onBack} style={tapBtn(48)}><Icon name="x" size={24} color="#fff" strokeWidth={2.2}/></button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Tageseintrag</div>
+              <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.1 }}>{TODAY_DIARY.weekday}, {TODAY_DIARY.date}</div>
+            </div>
+          </div>
+
+          {/* Offline pill */}
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', background: FT.successLight, borderBottom: `1px solid #BBF7D0` }}>
+            <Icon name="check-circle" size={15} color={FT.success}/>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: FT.successDark }}>Offline gespeichert · synchronisiert bei Empfang</span>
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '16px 16px 18px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Voice capture */}
+            {!dictated ? (
+              <button onClick={dictate} style={{
+                appearance: 'none', cursor: 'pointer', width: '100%', padding: '20px 16px', borderRadius: 16,
+                background: FT.orange50, border: `1.5px solid ${FT.orange200}`, fontFamily: FT.font,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 11,
+              }}>
+                <div style={{ width: 60, height: 60, borderRadius: 999, background: FT.orange, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(249,115,22,0.4)' }}>
+                  <Icon name="mic" size={28} color="#fff" strokeWidth={2}/>
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: FT.navy, whiteSpace: 'nowrap' }}>Tag diktieren</div>
+                <div style={{ fontSize: 13.5, color: FT.gray600, textAlign: 'center', lineHeight: 1.45, maxWidth: 280 }}>Sprich den Bauablauf — die App transkribiert und füllt die Felder aus.</div>
+              </button>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '13px 14px', borderRadius: 14, background: '#F5F3FF', border: `1px solid #DDD6FE` }}>
+                <div style={{ fontSize: 22, lineHeight: 1 }}>🤖</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#5B21B6' }}>KI-Vorschlag (Beta) — bitte prüfen</div>
+                  <div style={{ fontSize: 12.5, color: FT.gray600, marginTop: 2, lineHeight: 1.45 }}>{aiCount} Felder vorausgefüllt. Korrigiere bei Bedarf — gespeichert wird erst nach deiner Bestätigung.</div>
+                </div>
+                <button onClick={dictate} style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: 'pointer', display: 'inline-flex', flexShrink: 0, padding: 2 }} title="Erneut diktieren">
+                  <Icon name="refresh" size={18} color="#6D28D9" strokeWidth={2.2}/>
+                </button>
+              </div>
+            )}
+
+            {/* Wetter */}
+            <DField label="Wetter" ai={ai.weather}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {Object.keys(WEATHER).map((k) => {
+                  const wm = WEATHER[k]; const on = weather === k;
+                  return (
+                    <button key={k} onClick={() => { setWeather(k); clearAi('weather'); }} style={{
+                      appearance: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderRadius: 11,
+                      background: on ? wm.bg : '#fff', border: `2px solid ${on ? wm.color : FT.gray200}`, fontFamily: FT.font,
+                    }}>
+                      <WIcon kind={k} size={18} color={on ? wm.color : FT.gray500}/>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: on ? wm.color : FT.gray700 }}>{wm.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </DField>
+
+            {/* Temp + Crew */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <DField label="Temperatur" ai={ai.temp}>
+                  <div style={{ position: 'relative' }}>
+                    <input value={temp} onChange={(e) => { setTemp(e.target.value); clearAi('temp'); }} inputMode="numeric" placeholder="°C"
+                      style={{ ...inputStyle, fontFamily: FT.mono, fontWeight: 700, paddingRight: 36 }}/>
+                    <span style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 15, fontWeight: 700, color: FT.gray400 }}>°C</span>
+                  </div>
+                </DField>
+              </div>
+              <div style={{ flex: 1 }}>
+                <DField label="Mannstärke" ai={ai.crew}>
+                  <input value={crew} onChange={(e) => { setCrew(e.target.value); clearAi('crew'); }} inputMode="numeric" placeholder="Anzahl"
+                    style={{ ...inputStyle, fontFamily: FT.mono, fontWeight: 700 }}/>
+                </DField>
+              </div>
+            </div>
+
+            {/* Leistungen */}
+            {/* Notizen */}
+            <DField label="Notizen" ai={ai.notiz}>
+              <textarea value={notiz} onChange={(e) => { setNotiz(e.target.value); clearAi('notiz'); }} rows={3} placeholder="Freitext…"
+                style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }}/>
+            </DField>
+
+            {/* Fotos */}
+            <DField label="Fotonachweis">
+              <button style={{
+                appearance: 'none', cursor: 'pointer', width: '100%', padding: '16px', borderRadius: 14, background: '#fff',
+                border: `2px dashed ${FT.gray300}`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, fontFamily: FT.font,
+              }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: FT.gray100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="camera" size={23} color={FT.gray500} strokeWidth={2}/></div>
+                <span style={{ fontSize: 14.5, fontWeight: 700, color: FT.gray600 }}>Foto aufnehmen</span>
+                <span style={{ fontSize: 12, color: FT.gray400, fontWeight: 600 }}>mit Zeitstempel, GPS & SHA-256-Hash</span>
+              </button>
+            </DField>
+          </div>
+
+          {/* Sticky save */}
+          <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${FT.gray200}`, padding: '12px 16px 14px', boxShadow: '0 -4px 16px rgba(15,43,70,0.06)' }}>
+            <BigButton color={canSave ? FT.success : FT.gray200} textColor={canSave ? '#fff' : FT.gray400} icon="lock" label="Eintrag rechtssicher speichern" onClick={() => { if (canSave) onSave(); }}/>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 9, color: FT.gray400 }}>
+              <Icon name="info" size={13} color={FT.gray400}/>
+              <span style={{ fontSize: 11.5, fontWeight: 600 }}>Mit dem Speichern wird der Eintrag unveränderbar.</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ════════════════════════════════ PROFIL ═════════════════════════════ */
+    function ProfilScreen({ project, onNav, onHub }) {
+      return (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, background: FT.gray50 }}>
+          <div style={{ flexShrink: 0, background: SIGNAL, color: '#fff', padding: '8px 16px 18px' }}>
+            <HubBack project={project} onHub={onHub}/>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.3, marginTop: 4 }}>Profil</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginTop: 14 }}>
+              <Avatar name={ME.name} color={ME.color} size={52} ring="rgba(255,255,255,0.25)"/>
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 800 }}>{ME.name}</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>Mitarbeiter · Recyclinghof Standort A</div>
+              </div>
+            </div>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '16px 16px' }}>
+            <div style={{ background: '#fff', borderRadius: 14, border: `1px solid ${FT.gray200}`, overflow: 'hidden' }}>
+              {[
+                { icon: 'globe', label: 'Sprache', value: 'Deutsch' },
+                { icon: 'note', label: 'Benachrichtigungen', value: 'An' },
+                { icon: 'shield', label: 'Offline-Daten', value: 'Synchron' },
+              ].map((r, i) => (
+                <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 15px', borderTop: i === 0 ? 'none' : `1px solid ${FT.gray100}` }}>
+                  <Icon name={r.icon} size={19} color={FT.gray500} strokeWidth={2}/>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: FT.navy, flex: 1 }}>{r.label}</span>
+                  <span style={{ fontSize: 14, color: FT.gray500, fontWeight: 600 }}>{r.value}</span>
+                  <Icon name="chevron" size={17} color={FT.gray300} strokeWidth={2.2}/>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '20px 0', color: FT.gray400 }}>
+              <Icon name="info" size={14} color={FT.gray400}/>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Fendrel App · Version 2.4 (Feldansicht)</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ════════════════════════════ shared bits ════════════════════════════ */
+    function Tab({ active, onClick, label, count }) {
+      return (
+        <button onClick={onClick} style={{ appearance: 'none', cursor: 'pointer', flex: 1, height: 44, borderRadius: 11, background: active ? FT.navy : FT.gray100, color: active ? '#fff' : FT.gray600, border: 'none', fontFamily: FT.font, fontSize: 14.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          {label}
+          <span style={{ fontSize: 12, fontWeight: 800, minWidth: 22, height: 22, borderRadius: 999, padding: '0 6px', background: active ? 'rgba(255,255,255,0.18)' : FT.gray200, color: active ? '#fff' : FT.gray600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+        </button>
+      );
+    }
+    function GroupHead({ label, count }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '0 2px 10px' }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: FT.gray500, textTransform: 'uppercase', letterSpacing: 0.7 }}>{label}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: FT.gray400 }}>· {count}</span>
+        </div>
+      );
+    }
+    function BottomNav({ active, onNav, hasDiary }) {
+      return (
+        <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${FT.gray200}`, display: 'flex', padding: '6px 6px 8px', position: 'relative', zIndex: 10 }}>
+          <BottomTab icon="checklist" label="Aufgaben" active={active === 'aufgaben'} onClick={() => onNav && onNav('aufgaben')}/>
+          <BottomTab icon="wrench" label="Fahrzeuge" active={active === 'fahrzeuge'} onClick={() => onNav && onNav('fahrzeuge')}/>
+          {hasDiary ? <BottomTab icon="book" label="Tagebuch" active={active === 'bautagebuch'} onClick={() => onNav && onNav('bautagebuch')}/> : null}
+          <BottomTab icon="user" label="Profil" active={active === 'profil'} onClick={() => onNav && onNav('profil')}/>
+        </div>
+      );
+    }
+    function BottomTab({ icon, label, active, onClick }) {
+      return (
+        <button onClick={onClick} style={{ appearance: 'none', cursor: 'pointer', flex: 1, border: 'none', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 0', fontFamily: FT.font }}>
+          <div style={{ width: 64, height: 32, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? FT.orange50 : 'transparent' }}><Icon name={icon} size={22} color={active ? FT.orange : FT.gray500} strokeWidth={2}/></div>
+          <span style={{ fontSize: 12, fontWeight: active ? 800 : 600, color: active ? FT.orangeDark : FT.gray500 }}>{label}</span>
+        </button>
+      );
+    }
+    function BigButton({ color, outline, icon, label, onClick, textColor }) {
+      return (
+        <button onClick={onClick} style={{ appearance: 'none', cursor: 'pointer', width: '100%', height: 56, borderRadius: 14, background: outline ? '#fff' : color, color: outline ? FT.orange : (textColor || '#fff'), border: outline ? `2px solid ${FT.orange}` : 'none', fontFamily: FT.font, fontSize: 17, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: outline ? 'none' : '0 2px 8px rgba(15,43,70,0.12)' }}>
+          <Icon name={icon} size={22} color={outline ? FT.orange : (textColor || '#fff')} strokeWidth={2.4}/>{label}
+        </button>
+      );
+    }
+    function InfoRow({ icon, label, value, sub }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 15px' }}>
+          <div style={{ flexShrink: 0 }}>{icon}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: FT.gray500, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: FT.navy, marginTop: 1 }}>{value}</div>
+            {sub ? <div style={{ fontSize: 13, color: FT.gray500, marginTop: 1 }}>{sub}</div> : null}
+          </div>
+        </div>
+      );
+    }
+    function IconBox({ name }) {
+      return <div style={{ width: 40, height: 40, borderRadius: 11, background: FT.gray100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={name} size={21} color={FT.gray600} strokeWidth={2}/></div>;
+    }
+    function SectionTitle({ icon, children }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+          <Icon name={icon} size={17} color={FT.gray500} strokeWidth={2}/>
+          <span style={{ fontSize: 13, fontWeight: 800, color: FT.gray600, textTransform: 'uppercase', letterSpacing: 0.6, whiteSpace: 'nowrap' }}>{children}</span>
+        </div>
+      );
+    }
+    function PhotoTile({ label }) {
+      return (
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 14, overflow: 'hidden', background: 'linear-gradient(135deg, #6e7d8a, #2c3c4b)', border: `1px solid ${FT.gray200}` }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="image" size={40} color="rgba(255,255,255,0.55)" strokeWidth={1.6}/></div>
+          <div style={{ position: 'absolute', left: 12, bottom: 12, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 11px', borderRadius: 999, background: 'rgba(0,0,0,0.45)', color: '#fff', fontSize: 12.5, fontWeight: 600 }}>
+            <Icon name="camera" size={14} color="#fff"/>{label}
+          </div>
+        </div>
+      );
+    }
+    function Field({ label, required, children }) {
+      return (
+        <div>
+          <div style={{ fontSize: 14.5, fontWeight: 800, color: FT.navy, marginBottom: 9 }}>
+            {label}{required ? <span style={{ color: FT.orange, marginLeft: 4 }}>*</span> : null}
+          </div>
+          {children}
+        </div>
+      );
+    }
+    function Hint({ icon, children }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, color: FT.gray500 }}>
+          <Icon name={icon} size={14} color={FT.gray400}/>
+          <span style={{ fontSize: 12.5, fontWeight: 600 }}>{children}</span>
+        </div>
+      );
+    }
+
+    const inputStyle = {
+      width: '100%', border: `1.5px solid ${FT.gray300}`, borderRadius: 12, padding: '13px 14px',
+      fontFamily: FT.font, fontSize: 15.5, color: FT.navy, outline: 'none', background: '#fff',
+    };
+    function tapBtn(size) {
+      return { appearance: 'none', border: 'none', background: 'transparent', cursor: 'pointer', width: size, height: size, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
+    }
+    const textBtn = { appearance: 'none', cursor: 'pointer', width: '100%', height: 48, marginTop: 8, background: 'transparent', border: 'none', color: FT.gray700, fontFamily: FT.font, fontSize: 15, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9 };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
