@@ -104,7 +104,7 @@ button,input,textarea{font-family:inherit;}
 .nav.white{background:#fff;}
 .nav .slot{flex:1;display:flex;justify-content:center;}
 .nav button{background:none;border:none;cursor:pointer;padding:0;display:flex;}
-.fab{width:70px;height:70px;border-radius:999px;background:var(--orange);display:flex;align-items:center;justify-content:center;margin-top:-28px;box-shadow:0 6px 16px rgba(238,118,33,.4);border:4px solid #FAFBFC;cursor:pointer;}
+.nav button.fab{width:70px;height:70px;border-radius:999px;background:var(--orange);display:flex;align-items:center;justify-content:center;margin-top:-28px;box-shadow:0 6px 16px rgba(238,118,33,.4);border:4px solid #FAFBFC;cursor:pointer;}
 .nav.white .fab{border-color:#fff;}
 
 /* ---- Detail screen ---- */
@@ -534,11 +534,11 @@ function sheetPhoto(){
 }
 
 function sheetStatus(){
-  const cur = (findTask(cur().id)||TASKS.find(t=>t.id==='t0')).status;
-  const opt=(key,ic,icbg,t,s)=>`<button class="statusopt ${cur===key?'on':''}" data-action="set-status" data-status="${key}">
+  const curStatus = (findTask(cur().id)||TASKS.find(t=>t.id==='t0')).status;
+  const opt=(key,ic,icbg,t,s)=>`<button class="statusopt ${curStatus===key?'on':''}" data-action="set-status" data-status="${key}">
     <div class="ic" style="background:${icbg}">${ic}</div>
     <div style="flex:1;min-width:0;"><div class="t">${t}</div><div class="s">${s}</div></div>
-    <div class="rd">${cur===key?I.check:''}</div></button>`;
+    <div class="rd">${curStatus===key?I.check:''}</div></button>`;
   return overlay(`<div class="grab"></div>
     <h2 style="margin-bottom:18px;">Status ändern</h2>
     ${opt('in_bearbeitung',I.play,'#F2772B','In Bearbeitung','Du arbeitest aktiv daran')}
