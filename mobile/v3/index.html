@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<title>Mein Arbeitsplatz — Aufgaben (Prototyp)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"/>
+<meta name="robots" content="noindex"/>
+<meta name="theme-color" content="#FAFBFC"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   Mein Arbeitsplatz — mobile-first clickable mockup (single file SPA)
+   Design source: Aufgaben.dc.html · navy/orange · Roboto
+   Screens are rendered by JS into #app. No phone frame.
+   ===================================================================== */
+:root{
+  --navy:#16304A; --navy-2:#14304B; --ink:#16304A;
+  --muted:#7C8794; --muted-2:#9AA4AF; --slate:#3C4A5A;
+  --orange:#EE7621; --orange-2:#F2772B; --orange-bd:#E8731F; --orange-bg:#FCEADB; --orange-tx:#C2541D;
+  --line:#E4E7EB; --line-2:#EDEFF2;
+  --page:#EAEEF3; --surface:#F6F7F9; --card:#fff;
+  --chip:#E7ECF2; --chip-tx:#475569;
+  --shadow:0 8px 30px rgba(0,0,0,.10);
+  --maxw:440px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Roboto',system-ui,-apple-system,sans-serif;
+  background:#cfd4da;color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
+}
+::placeholder{color:var(--muted-2);}
+button,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:0;height:0;}
+
+/* ---- App shell (the centred "device-less" column) ---- */
+#app{
+  position:relative;
+  width:100%;max-width:var(--maxw);margin:0 auto;
+  height:100dvh;height:100vh;
+  background:var(--page);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 0 60px rgba(15,43,70,.18);
+}
+@media(min-width:480px){ body{display:flex;align-items:center;justify-content:center;} #app{height:920px;max-height:96dvh;border-radius:28px;} }
+
+.screen{flex:1;display:flex;flex-direction:column;min-height:0;animation:scrIn .22s ease;}
+@keyframes scrIn{from{opacity:.4;transform:translateY(6px);}to{opacity:1;transform:none;}}
+@media(prefers-reduced-motion:reduce){.screen{animation:none;}}
+
+/* ---- Header ---- */
+.hdr{flex-shrink:0;background:#FAFBFC;padding:calc(14px + env(safe-area-inset-top)) 16px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 0 rgba(15,43,70,.06);}
+.hdr.white{background:#fff;border-bottom:1px solid var(--line-2);box-shadow:none;}
+.hdr h1{flex:1;min-width:0;font-size:23px;font-weight:900;color:var(--ink);letter-spacing:-.5px;}
+.hdr h1.sm{font-size:21px;}
+.iconbtn{width:46px;height:46px;border-radius:13px;background:#EFF1F4;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
+.iconbtn.plain{background:#F1F3F5;width:44px;height:44px;border-radius:12px;}
+.iconbtn .badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--orange);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #FAFBFC;}
+.iconbtn.rel{position:relative;}
+.sync{display:flex;align-items:center;gap:6px;padding:5px 11px 5px 5px;border-radius:999px;background:#E7F6EC;border:1.5px solid #9FDBB4;flex-shrink:0;}
+.sync .dot{width:26px;height:26px;border-radius:999px;background:#16A34A;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(22,163,74,.4);}
+.sync span{font-size:12.5px;font-weight:700;color:#15803D;letter-spacing:.2px;}
+
+/* ---- Scroll body ---- */
+.body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;}
+.pad{padding:16px;display:flex;flex-direction:column;gap:16px;}
+.section-label{font-size:13px;font-weight:800;color:#8A93A0;letter-spacing:.5px;margin:6px 4px -2px;}
+
+/* ---- List card (orange highlight style from design) ---- */
+.card{background:var(--orange-bg);border:2px solid var(--orange-bd);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:15px;cursor:pointer;text-align:left;width:100%;font-family:inherit;transition:transform .08s;}
+.card:active{transform:scale(.985);}
+.card .ic{width:56px;height:56px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.card .ttl{font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;line-height:1.15;}
+.card .sub{font-size:14px;color:var(--muted);margin-top:3px;}
+.card .grow{flex:1;min-width:0;}
+.card .cnt{font-size:25px;font-weight:700;color:var(--orange-bd);flex-shrink:0;}
+.ellip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* task list card variant (title + meta + status pill) */
+.tcard{align-items:flex-end;}
+.pill{font-size:12px;font-weight:800;letter-spacing:.3px;color:var(--chip-tx);background:var(--chip);padding:5px 10px;border-radius:8px;flex-shrink:0;}
+.tcard .ttl{font-size:18px;}
+.meta-row{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);}
+.meta-row.dim{font-size:13px;color:var(--muted-2);margin-top:3px;}
+
+/* ---- Filter chips row ---- */
+.chips{padding:16px 16px 4px;display:flex;gap:10px;overflow-x:auto;}
+.chip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #DDE2E7;border-radius:999px;padding:11px 16px;flex-shrink:0;cursor:pointer;font-size:16px;font-weight:700;color:#5A6573;white-space:nowrap;}
+.chip .n{font-size:13px;font-weight:800;color:var(--muted-2);background:#EEF1F5;border-radius:999px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;padding:0 6px;}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+.chip.on .n{color:var(--navy);background:#fff;}
+
+/* ---- Bottom nav ---- */
+.nav{flex-shrink:0;background:#FAFBFC;height:calc(70px + env(safe-area-inset-bottom));padding:12px 36px env(safe-area-inset-bottom);display:flex;align-items:flex-start;border-top:1px solid #E6EAEF;}
+.nav.white{background:#fff;}
+.nav .slot{flex:1;display:flex;justify-content:center;}
+.nav button{background:none;border:none;cursor:pointer;padding:0;display:flex;}
+.fab{width:70px;height:70px;border-radius:999px;background:var(--orange);display:flex;align-items:center;justify-content:center;margin-top:-28px;box-shadow:0 6px 16px rgba(238,118,33,.4);border:4px solid #FAFBFC;cursor:pointer;}
+.nav.white .fab{border-color:#fff;}
+
+/* ---- Detail screen ---- */
+.detail-h1{font-size:27px;font-weight:900;color:var(--ink);letter-spacing:-.6px;line-height:1.15;}
+.statuschip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;flex-shrink:0;}
+.statuschip .d{width:7px;height:7px;border-radius:999px;}
+.statuschip span{font-size:13px;font-weight:800;}
+.info{background:#fff;border:1.5px solid var(--line-2);border-radius:14px;overflow:hidden;margin-top:22px;}
+.info .row{display:flex;align-items:center;gap:12px;padding:15px 16px;}
+.info .row .k{flex:1;font-size:16px;color:var(--muted);}
+.info .row .v{font-size:16px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.info .sep{height:1px;background:var(--line-2);margin-left:16px;}
+.h-label{font-size:18px;font-weight:900;color:var(--ink);letter-spacing:-.2px;margin:24px 2px 10px;}
+.box{background:#fff;border:1.5px solid var(--line-2);border-radius:14px;padding:16px;font-size:16px;color:var(--slate);line-height:1.55;}
+.label-pill{padding:8px 15px;border-radius:999px;border:1.5px solid #DDE2E7;background:#fff;font-size:14px;font-weight:600;color:var(--slate);}
+.photos{display:flex;gap:10px;}
+.photo{flex:1;height:88px;border-radius:12px;background:#E7EAEE;display:flex;align-items:center;justify-content:center;}
+.avatar{border-radius:999px;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* ---- Footer CTA ---- */
+.foot{flex-shrink:0;background:#fff;padding:12px 18px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line-2);}
+.btn{width:100%;height:56px;border:none;border-radius:14px;background:var(--orange);color:#fff;font-size:18px;font-weight:700;letter-spacing:.2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;}
+.btn.ghost{background:#F1F3F5;color:var(--ink);}
+.btn:active{filter:brightness(.96);}
+
+/* ---- Form ---- */
+.form{background:var(--surface);padding:18px;}
+.bigchoice{cursor:pointer;width:100%;text-align:left;background:var(--orange-bg);border:1.5px solid var(--orange-bd);border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:15px;}
+.bigchoice .ic{width:52px;height:52px;border-radius:999px;background:var(--orange-2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.bigchoice .t{font-size:19px;font-weight:900;color:var(--ink);letter-spacing:-.3px;}
+.bigchoice .s{font-size:15px;color:var(--orange-bd);margin-top:2px;}
+.fld{width:100%;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:16px;font-size:17px;color:var(--ink);outline:none;}
+textarea.fld{font-size:16px;resize:none;height:104px;}
+.req{color:var(--orange-bd);}
+.selectrow{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:16px;display:flex;align-items:center;gap:11px;font-size:17px;color:var(--ink);cursor:pointer;}
+.selectrow.ph{color:var(--muted-2);}
+.tagwrap{display:flex;flex-wrap:wrap;gap:10px;}
+.tag{cursor:pointer;padding:9px 16px;border-radius:999px;background:#fff;border:1.5px solid var(--line);font-size:15px;font-weight:600;color:var(--slate);display:inline-flex;align-items:center;gap:6px;font-family:inherit;}
+.tag.on{padding-left:12px;background:var(--orange-bg);border-color:var(--orange-bd);color:var(--orange-tx);font-weight:700;}
+.tag .ck{display:none;}
+.tag.on .ck{display:block;}
+.tag.avatar-tag{padding:6px 15px 6px 6px;}
+
+/* ---- Comments preview card ---- */
+.cpv{cursor:pointer;text-align:left;width:100%;background:#fff;border:1.5px solid var(--line-2);border-radius:14px;padding:2px 16px 14px;font-family:inherit;}
+.cpv .c{display:flex;gap:11px;padding-top:14px;}
+.cpv .who{font-size:14px;color:var(--muted);}
+.cpv .who b{font-weight:800;color:var(--ink);}
+.cpv .txt{font-size:15px;color:var(--slate);margin-top:2px;}
+.cpv .inputrow{display:flex;align-items:center;gap:10px;padding-top:14px;margin-top:14px;border-top:1px solid var(--line-2);}
+.cpv .ghostinput{flex:1;background:#F1F3F5;border-radius:999px;padding:10px 15px;font-size:14px;color:var(--muted-2);}
+
+/* ---- Sheets / modals ---- */
+.overlay{position:absolute;inset:0;background:rgba(20,30,45,.42);display:flex;flex-direction:column;justify-content:flex-end;z-index:40;animation:fade .2s ease;}
+@keyframes fade{from{opacity:0;}to{opacity:1;}}
+.sheet{background:#fff;border-radius:24px 24px 0 0;padding:12px 20px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.18);max-height:88%;overflow:auto;animation:up .26s cubic-bezier(.2,.8,.2,1);}
+.sheet.full{height:78%;padding:0;display:flex;flex-direction:column;}
+@keyframes up{from{transform:translateY(100%);}to{transform:none;}}
+.grab{width:40px;height:5px;border-radius:999px;background:#D7DBE0;margin:2px auto 16px;}
+.sheet h2{font-size:26px;font-weight:900;color:var(--ink);letter-spacing:-.5px;}
+.sheet .grp{font-size:13px;font-weight:800;color:#8A93A0;letter-spacing:.5px;margin:18px 0 11px;}
+.statusopt{cursor:pointer;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:14px;margin-bottom:10px;font-family:inherit;}
+.statusopt.on{background:var(--orange-bg);border-color:var(--orange-bd);}
+.statusopt .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.statusopt .t{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-.2px;}
+.statusopt .s{font-size:13px;color:var(--muted);margin-top:1px;}
+.statusopt .rd{width:26px;height:26px;border-radius:999px;border:2px solid #CFD8E3;flex-shrink:0;}
+.statusopt.on .rd{border:none;background:var(--orange-bd);display:flex;align-items:center;justify-content:center;}
+.validrow{background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+.validrow .ic{width:46px;height:46px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.validrow .ic .d{width:30px;height:30px;border-radius:999px;background:#F59E0B;display:flex;align-items:center;justify-content:center;}
+.validrow span{font-size:19px;font-weight:900;color:var(--ink);letter-spacing:-.3px;}
+
+/* chat */
+.chat-h{flex-shrink:0;padding:12px 20px 14px;border-bottom:1px solid var(--line-2);}
+.chat-h .top{display:flex;align-items:center;}
+.chat-h h2{flex:1;font-size:22px;letter-spacing:-.4px;}
+.chat-body{flex:1;min-height:0;overflow:auto;padding:18px 16px;display:flex;flex-direction:column;gap:16px;}
+.msg{display:flex;gap:9px;align-items:flex-end;}
+.msg.me{justify-content:flex-end;}
+.msg .bub{max-width:76%;}
+.msg .name{font-size:12px;font-weight:700;color:var(--muted);margin:0 0 3px 4px;}
+.msg .b{background:#EFF1F4;border-radius:5px 16px 16px 16px;padding:10px 13px;font-size:15px;color:var(--ink);line-height:1.35;}
+.msg.me .b{background:var(--orange);color:#fff;border-radius:16px 5px 16px 16px;}
+.msg .time{font-size:11px;color:var(--muted-2);margin:3px 0 0 4px;}
+.msg.me .time{text-align:right;margin:3px 4px 0 0;}
+.chat-foot{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line-2);}
+.chat-foot .gi{flex:1;background:#F1F3F5;border-radius:999px;padding:13px 16px;font-size:15px;color:var(--muted-2);}
+.send{width:46px;height:46px;border-radius:999px;background:var(--orange);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;}
+
+/* toast */
+.toast{position:absolute;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:var(--shadow);z-index:60;animation:tIn .2s ease;max-width:88%;text-align:center;}
+@keyframes tIn{from{opacity:0;transform:translate(-50%,10px);}to{opacity:1;transform:translateX(-50%);}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =====================================================================
+   ICONS
+   ===================================================================== */
+const I = {
+  back:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16304A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>`,
+  bell:`<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#16304A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>`,
+  share:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#13314C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v3.4M11.2 10.4l-3.8 4.6M12.8 10.4l3.8 4.6"/><circle cx="12" cy="5" r="2" fill="#13314C" stroke="none"/><circle cx="6.6" cy="16.4" r="2.1" fill="#F2772B" stroke="none"/><circle cx="17.4" cy="16.4" r="2.1" fill="#13314C" stroke="none"/></svg>`,
+  syncCheck:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17a4 4 0 0 1 .3-8A5 5 0 0 1 17 8.2 3.5 3.5 0 0 1 17.5 17H7Z"/><path d="M9.6 12.8l1.7 1.7 3-3.2"/></svg>`,
+  edit:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16304A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1 1-4 11.5-11.5Z"/></svg>`,
+  sort:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16304A" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.3"/><circle cx="8" cy="17" r="2.3"/></svg>`,
+  chevR:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8731F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`,
+  chevD:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9AA4AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
+  mic:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/></svg>`,
+  cal:`<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#16304A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>`,
+  camera:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16304A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6h0a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"/><circle cx="12" cy="12.5" r="3.5"/></svg>`,
+  pin:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA4AF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.7-6.5-10.5A6.5 6.5 0 0 1 18.5 10.5C18.5 15.3 12 21 12 21Z"/><circle cx="12" cy="10.3" r="2.4"/></svg>`,
+  person:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9AA4AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19a6.8 6.8 0 0 1 13 0"/></svg>`,
+  imgPh:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#AEB6BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>`,
+  claim:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M18 8v6M21 11h-6"/></svg>`,
+  refresh:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>`,
+  check:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>`,
+  send:`<svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M3 11l18-8-8 18-2-7-8-3Z"/></svg>`,
+  x:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16304A" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  home:on=>`<svg width="30" height="30" viewBox="0 0 24 24" fill="${on?'#F2772B':'none'}" stroke="${on?'none':'#9AA4AF'}" stroke-width="1.9"><path d="M12 3 3 10.2V21a1 1 0 0 0 1 1h5v-6h6v6h5a1 1 0 0 0 1-1V10.2L12 3Z"/></svg>`,
+  profile:`<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#9AA4AF" stroke-width="1.9"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3.4"/><path d="M5.5 19a6.8 6.8 0 0 1 13 0" stroke-linecap="round"/></svg>`,
+  plus:`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+  clipboard:c=>`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2.4"/><path d="M9 4.5a3 3 0 0 1 6 0V6H9V4.5Z" fill="${c}" stroke="none"/><path d="M9.5 11h5M9.5 14.5h5"/></svg>`,
+  truck:c=>`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v9h7"/><path d="M11 14V7h3l3 4v3"/><path d="M19 6v8M19 8h-2"/><circle cx="7" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>`,
+  scale:c=>`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M7 20h10M5 8h14"/><path d="M5 8 2.7 13a2.7 2.7 0 0 0 4.6 0L5 8Z"/><path d="M19 8l-2.3 5a2.7 2.7 0 0 0 4.6 0L19 8Z"/><circle cx="12" cy="4.5" r="1.3" fill="${c}" stroke="none"/></svg>`,
+  play:`<svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5l11 7-11 7V5Z"/></svg>`,
+  pause:`<svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="5" width="4" height="14" rx="1.3"/><rect x="14" y="5" width="4" height="14" rx="1.3"/></svg>`,
+  done:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>`,
+  pool:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v1"/></svg>`,
+  warn:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v6.5"/><circle cx="12" cy="17.6" r="0.4" fill="#fff" stroke="#fff" stroke-width="1.6"/></svg>`,
+  gallery:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16304A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>`,
+  cameraW:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6h0a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"/><circle cx="12" cy="12.5" r="3.5"/></svg>`,
+};
+
+/* =====================================================================
+   DATA (dummy)
+   ===================================================================== */
+const AVA = {Du:'#EE7621', DW:'#5A6573', AS:'#16304A', MM:'#2563EB'};
+function initials(name){return name==='Du'?'Du':name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+
+const PROJECTS = [
+  {id:'nordring', name:'Baustelle Nordring', icon:I.clipboard('#fff'), color:'#2563EB', open:5, tasks:5, triages:2},
+  {id:'recyclinghof', name:'Recyclinghof Standort A', icon:I.truck('#fff'), color:'#16A34A', open:2, tasks:2, triages:1},
+  {id:'west', name:'Sortieranlage West', icon:I.scale('#fff'), color:'#F2772B', open:1, tasks:1, triages:0},
+];
+
+const TASKS = [
+  {id:'t1', title:'Neuen Schrank bestellen', author:'David Werner', when:'vor 7 Std', status:'in_bearbeitung', assignee:'Max Müller'},
+  {id:'t2', title:'Palette Altpapier wiegen + verladen', author:'David Werner', when:'vor 31 Tagen', status:'offen', assignee:null},
+  {id:'t3', title:'Pokémon Artikel kaufen', author:'Anna Schmidt', when:'vor 2 Tagen', status:'pausiert', assignee:'Anna Schmidt'},
+  {id:'t4', title:'Sortieranlage Förderband gewartet', author:'David Werner', when:'vor 31 Tagen', status:'offen', assignee:null},
+  {id:'t0', title:'Container 3 leeren', author:'Anna Schmidt', when:'vor 5 Std', status:'offen', assignee:null},
+];
+
+const TRIAGES = [
+  {id:'r1', no:'LS-2026-0412', author:'David Werner', date:'20.06.2026', status:'offen'},
+  {id:'r2', no:'LS-2026-0408', author:'Anna Schmidt', date:'19.06.2026', status:'in_bearbeitung'},
+  {id:'r3', no:'LS-2026-0401', author:'David Werner', date:'18.06.2026', status:'offen'},
+  {id:'r4', no:'LS-2026-0395', author:'Max Müller', date:'17.06.2026', status:'pausiert'},
+  {id:'r5', no:'LS-2026-0388', author:'Anna Schmidt', date:'16.06.2026', status:'offen'},
+];
+
+const STATUS = {
+  offen:        {label:'Offen',          shortLabel:'Offen',          dot:'#64748B', bg:'#EEF2F7', bd:'#CFD8E3', tx:'#475569'},
+  in_bearbeitung:{label:'In Bearbeitung',shortLabel:'In Arbeit',      dot:'#E8731F', bg:'#FCEADB', bd:'#F0B488', tx:'#C2541D'},
+  pausiert:     {label:'Pausiert',       shortLabel:'Pausiert',       dot:'#F59E0B', bg:'#FEF3C7', bd:'#FCD34D', tx:'#B45309'},
+  abgeschlossen:{label:'Abgeschlossen',  shortLabel:'Erledigt',       dot:'#16A34A', bg:'#DCFCE7', bd:'#86EFAC', tx:'#15803D'},
+};
+
+const LABELS = ['Entsorgung','Dringend','Wartung','Container','Sicherheit','Reinigung'];
+
+/* =====================================================================
+   STATE + ROUTER
+   ===================================================================== */
+const state = {
+  stack:[{view:'home'}],
+  sheet:null,
+  filter:'alle',
+  newLabels:new Set(['Entsorgung','Dringend']),
+  newTask:{title:'',desc:''},
+};
+const cur = () => state.stack[state.stack.length-1];
+function navigate(view, params={}){ state.stack.push({view,...params}); state.sheet=null; render(); }
+function back(){ if(state.stack.length>1){ state.stack.pop(); } state.sheet=null; render(); }
+function openSheet(name){ state.sheet=name; render(); }
+function closeSheet(){ state.sheet=null; render(); }
+
+function findTask(id){ return TASKS.find(t=>t.id===id); }
+
+/* =====================================================================
+   SMALL HELPERS
+   ===================================================================== */
+const av = (name,size=28,fs=11)=>`<span class="avatar" style="width:${size}px;height:${size}px;background:${AVA[initials(name)]||'#5A6573'};font-size:${fs}px;">${initials(name)}</span>`;
+
+function header(opts){
+  const {title, back:hasBack, white, badge, right=''} = opts;
+  return `<div class="hdr ${white?'white':''}">
+    ${hasBack?`<button class="iconbtn plain" data-action="back">${I.back}</button>`:''}
+    ${opts.left||''}
+    <h1 class="${opts.smTitle?'sm':''}">${title}</h1>
+    ${right}
+  </div>`;
+}
+function bellBtn(badge){return `<button class="iconbtn rel plain" data-action="toast" data-msg="Benachrichtigungen">${I.bell}${badge?`<span class="badge">${badge}</span>`:''}</button>`;}
+
+function bottomNav(white){
+  return `<div class="nav ${white?'white':''}">
+    <div class="slot"><button data-action="home">${I.home(true)}</button></div>
+    <div class="slot"><button class="fab" data-action="new">${I.plus}</button></div>
+    <div class="slot"><button data-action="toast" data-msg="Profil">${I.profile}</button></div>
+  </div>`;
+}
+
+/* =====================================================================
+   SCREENS
+   ===================================================================== */
+function screenHome(){
+  const cards = PROJECTS.map(p=>`
+    <button class="card" data-action="open-project" data-id="${p.id}">
+      <div class="ic" style="background:${p.color}">${p.icon}</div>
+      <div class="grow"><div class="ttl">${p.name}</div><div class="sub">${p.open} offene ${p.open===1?'Aufgabe':'Aufgaben'}</div></div>
+      <div class="cnt">${p.open}</div>
+    </button>`).join('');
+  return `<div class="screen">
+    <div class="hdr">
+      <div class="sync"><div class="dot">${I.syncCheck}</div><span>Sync</span></div>
+      ${I.share}
+      <h1>Mein Arbeitsplatz</h1>
+      ${bellBtn()}
+    </div>
+    <div class="body"><div class="pad">${cards}</div></div>
+    ${bottomNav()}
+  </div>`;
+}
+
+function screenProject(id){
+  const p = PROJECTS.find(x=>x.id===id) || PROJECTS[0];
+  return `<div class="screen">
+    ${header({title:p.name, back:true, smTitle:true, right:`<button class="iconbtn plain" data-action="toast" data-msg="Bearbeiten">${I.edit}</button>${bellBtn()}`})}
+    <div class="body"><div class="pad">
+      <div class="section-label">BEREICHE</div>
+      <button class="card" data-action="open-bereich" data-bereich="aufgaben">
+        <div class="ic" style="background:#F2772B">${I.clipboard('#fff')}</div>
+        <div class="grow"><div class="ttl">Aufgaben</div><div class="sub">${p.tasks} offene Aufgaben</div></div>
+        <div class="cnt">${p.tasks}</div>
+      </button>
+      <button class="card" data-action="open-bereich" data-bereich="triagen">
+        <div class="ic" style="background:#14304B">${I.scale('#fff')}</div>
+        <div class="grow"><div class="ttl">Triagen</div><div class="sub">${p.triages} offene Triagen</div></div>
+        <div class="cnt">${p.triages}</div>
+      </button>
+    </div></div>
+    ${bottomNav()}
+  </div>`;
+}
+
+function taskCard(t){
+  return `<button class="card tcard" data-action="open-task" data-id="${t.id}">
+    <div class="grow">
+      <div class="ttl ellip">${t.title}</div>
+      <div class="sub ellip">${t.author} · ${t.when}</div>
+    </div>
+    <span class="pill">${STATUS[t.status].shortLabel}</span>
+  </button>`;
+}
+
+function screenTasks(){
+  const f = state.filter;
+  let list = TASKS.filter(t=>t.id!=='t0'); // t0 = canonical detail example, not in this list
+  if(f==='in_bearbeitung') list = list.filter(t=>t.status==='in_bearbeitung');
+  if(f==='pausiert') list = list.filter(t=>t.status==='pausiert');
+  const counts = {
+    alle: TASKS.filter(t=>t.id!=='t0').length,
+    in_bearbeitung: TASKS.filter(t=>t.id!=='t0'&&t.status==='in_bearbeitung').length,
+    pausiert: TASKS.filter(t=>t.id!=='t0'&&t.status==='pausiert').length,
+  };
+  const chip=(key,label)=>`<button class="chip ${f===key?'on':''}" data-action="filter" data-filter="${key}">${label}<span class="n">${counts[key]}</span></button>`;
+  return `<div class="screen">
+    ${header({title:'Aufgaben', back:true, white:true, right:`<button class="iconbtn plain" data-action="open-sheet" data-sheet="filter">${I.sort}</button>${bellBtn(9)}`})}
+    <div class="body" style="background:var(--page)">
+      <div class="chips">${chip('alle','Alle')}${chip('in_bearbeitung','In Bearbeitung')}${chip('pausiert','Pausiert')}</div>
+      <div class="pad" style="padding-top:16px;gap:14px;">${list.map(taskCard).join('') || `<div style="text-align:center;color:var(--muted);padding:30px;">Keine Aufgaben</div>`}</div>
+    </div>
+    ${bottomNav(true)}
+  </div>`;
+}
+
+function triageCard(t){
+  const s=STATUS[t.status];
+  return `<button class="card tcard" style="align-items:flex-start" data-action="open-triage" data-id="${t.id}">
+    <div class="grow">
+      <div class="ttl ellip">Lieferschein ${t.no}</div>
+      <div class="meta-row" style="margin-top:6px">${I.person}${t.author}</div>
+      <div class="meta-row dim">${I.cal.replace('21','14').replace('21','14')}${t.date}</div>
+    </div>
+    <span class="pill">${s.shortLabel}</span>
+  </button>`;
+}
+
+function screenTriages(){
+  return `<div class="screen">
+    ${header({title:'Triagen', back:true, white:true, right:`<button class="iconbtn plain" data-action="open-sheet" data-sheet="filter">${I.sort}</button>${bellBtn(9)}`})}
+    <div class="body" style="background:var(--page)">
+      <div class="pad" style="gap:14px;">${TRIAGES.map(triageCard).join('')}</div>
+    </div>
+    ${bottomNav(true)}
+  </div>`;
+}
+
+function screenTask(id){
+  const t = findTask(id) || TASKS.find(x=>x.id==='t0');
+  const s = STATUS[t.status];
+  const assignee = t.assignee;
+  const isOpen = t.status==='offen';
+  return `<div class="screen">
+    <div class="hdr white">
+      <button class="iconbtn plain" data-action="back">${I.back}</button>
+      <h1>Aufgabe</h1>
+      <span class="statuschip" style="background:${s.bg};border:1.5px solid ${s.bd};"><span class="d" style="background:${s.dot}"></span><span style="color:${s.tx}">${s.label}</span></span>
+    </div>
+    <div class="body" style="background:var(--surface)"><div style="padding:18px;">
+      <div class="detail-h1">${t.title}</div>
+      <div class="meta-row" style="margin-top:8px;font-size:15px;">${I.pin}Baustelle Nordring</div>
+
+      <div class="info">
+        <div class="row">${I.person}<span class="k">Zugewiesen an</span>${assignee?`<span class="v">${av(assignee)}${assignee}</span>`:`<span class="v" style="color:var(--muted-2)">Nicht zugewiesen</span>`}</div>
+        <div class="sep"></div>
+        <div class="row">${I.cal}<span class="k">Fällig am</span><span class="v">Heute, 20. Juni</span></div>
+        <div class="sep"></div>
+        <div class="row">${I.person}<span class="k">Erstellt von</span><span class="v">${t.author}</span></div>
+      </div>
+
+      <div class="h-label">Beschreibung</div>
+      <div class="box">Container an der Nordseite ist voll. Bitte vor 12 Uhr leeren und ein Foto als Nachweis hochladen.</div>
+
+      <div class="h-label">Labels</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;"><span class="label-pill">Entsorgung</span><span class="label-pill">Dringend</span></div>
+
+      <div class="h-label">Fotos</div>
+      <div class="photos"><div class="photo">${I.imgPh}</div><div class="photo">${I.imgPh}</div><div class="photo">${I.imgPh}</div></div>
+
+      <div style="display:flex;align-items:center;margin:26px 2px 11px;">
+        <div style="flex:1;font-size:18px;font-weight:900;color:var(--ink);letter-spacing:-.2px;">Kommentare <span style="color:var(--muted-2)">4</span></div>
+        <button style="background:none;border:none;font-size:15px;font-weight:700;color:var(--orange-bd);cursor:pointer;" data-action="open-sheet" data-sheet="comments">Alle anzeigen</button>
+      </div>
+      <button class="cpv" data-action="open-sheet" data-sheet="comments">
+        <div class="c"><div class="avatar" style="width:34px;height:34px;background:${AVA.Du};font-size:12px;">Du</div><div style="flex:1;min-width:0;"><div class="who"><b>Du</b> · vor 5 Min</div><div class="txt ellip">Foto vom Füllstand wäre hilfreich.</div></div></div>
+        <div class="c"><div class="avatar" style="width:34px;height:34px;background:${AVA.AS};font-size:12px;">AS</div><div style="flex:1;min-width:0;"><div class="who"><b>Anna Schmidt</b> · vor 3 Min</div><div class="txt ellip">Mache ich gleich.</div></div></div>
+        <div class="inputrow"><div class="avatar" style="width:34px;height:34px;background:${AVA.Du};font-size:12px;">Du</div><div class="ghostinput">Kommentar schreiben…</div></div>
+      </button>
+    </div></div>
+    <div class="foot">
+      ${isOpen
+        ? `<button class="btn" data-action="claim" data-id="${t.id}">${I.claim}Aufgabe übernehmen</button>`
+        : `<button class="btn" data-action="open-sheet" data-sheet="status">${I.refresh}Status ändern</button>`}
+    </div>
+  </div>`;
+}
+
+function screenNew(){
+  const labelChips = LABELS.map(l=>{
+    const on = state.newLabels.has(l);
+    return `<button class="tag ${on?'on':''}" data-action="toggle-label" data-val="${l}"><span class="ck">${I.check.replace(/#fff/g,'#C2541D')}</span>${l}</button>`;
+  }).join('');
+  return `<div class="screen">
+    ${header({title:'Neue Aufgabe', back:true, white:true})}
+    <div class="body form">
+      <button class="bigchoice" data-action="toast" data-msg="🎙️ Aufnahme gestartet…">
+        <div class="ic">${I.mic}</div>
+        <div style="flex:1;min-width:0;"><div class="t">Aufgabe einsprechen</div><div class="s">Einfach sprechen statt tippen</div></div>
+        ${I.chevR}
+      </button>
+
+      <div class="h-label" style="margin-top:24px;">Titel <span class="req">*</span></div>
+      <input id="f-title" class="fld" type="text" placeholder="Aufgabentitel" value="${state.newTask.title.replace(/"/g,'&quot;')}"/>
+
+      <div class="h-label">Beschreibung <span class="req">*</span></div>
+      <textarea id="f-desc" class="fld" placeholder="Beschreibung (optional)">${state.newTask.desc}</textarea>
+
+      <div class="h-label">Labels</div>
+      <div class="tagwrap">${labelChips}</div>
+
+      <div class="h-label">Zuweisen an</div>
+      <div class="selectrow ph" data-action="toast" data-msg="Person auswählen"><span style="flex:1">Auswählen</span>${I.chevD}</div>
+
+      <div class="h-label">Bis wann?</div>
+      <div class="selectrow" data-action="toast" data-msg="Datum wählen">${I.cal}<span>Datum wählen</span></div>
+
+      <div class="h-label">Fotos</div>
+      <div class="selectrow" style="justify-content:center" data-action="open-sheet" data-sheet="photo">${I.camera}<span>Foto hinzufügen</span></div>
+    </div>
+    <div class="foot"><button class="btn" data-action="create-task">Aufgabe erstellen</button></div>
+  </div>`;
+}
+
+/* =====================================================================
+   SHEETS
+   ===================================================================== */
+function sheetFilter(){
+  const grp=(title,opts)=>`<div class="grp">${title}</div><div class="tagwrap">${opts.map((o,i)=>`<button class="tag ${i===0?'on':''}" data-action="toast" data-msg="Filter">${i===0?`<span class="ck">${I.check.replace(/#fff/g,'#C2541D')}</span>`:''}${o}</button>`).join('')}</div>`;
+  return overlay(`<div class="grab"></div>
+    <div style="display:flex;align-items:center;margin-bottom:8px;"><h2 style="flex:1">Filter</h2><button style="background:none;border:none;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer;" data-action="toast" data-msg="Zurückgesetzt">Zurücksetzen</button></div>
+    ${grp('PROJEKT',['Alle','Baustelle Nordring','Recyclinghof Standort A','Sortieranlage West'])}
+    ${grp('STATUS',['Alle','Offen','In Bearbeitung','Pausiert','Erledigt'])}
+    ${grp('ZUGEWIESEN AN',['Alle','Du','David Werner','Anna Schmidt','Max Müller'])}
+    ${grp('LABELS',['Entsorgung','Dringend','Wartung','Container'])}
+    ${grp('SORTIEREN NACH',['Fälligkeit','Status'])}
+    <button class="btn" style="margin-top:24px;" data-action="apply-filter">Anwenden</button>`);
+}
+
+function sheetPhoto(){
+  return overlay(`<div class="grab"></div>
+    <h2 style="margin-bottom:18px;">Foto hinzufügen</h2>
+    <button class="bigchoice" style="margin-bottom:12px;" data-action="toast" data-msg="📷 Kamera geöffnet">
+      <div class="ic" style="border-radius:13px;width:48px;height:48px;background:#2563EB;">${I.cameraW}</div>
+      <div style="flex:1;min-width:0;"><div class="t">Kamera</div><div class="s">Foto aufnehmen</div></div>${I.chevR}
+    </button>
+    <button class="bigchoice" style="background:#fff;border-color:var(--line);margin-bottom:16px;" data-action="toast" data-msg="🖼️ Galerie geöffnet">
+      <div class="ic" style="border-radius:13px;width:48px;height:48px;background:#EFF1F4;">${I.gallery}</div>
+      <div style="flex:1;min-width:0;"><div class="t">Galerie</div><div class="s" style="color:var(--muted)">Aus Mediathek wählen</div></div>
+      ${I.chevR.replace('#E8731F','#B4BCC6')}
+    </button>
+    <button class="btn ghost" data-action="close-sheet">Abbrechen</button>`);
+}
+
+function sheetStatus(){
+  const cur = (findTask(cur().id)||TASKS.find(t=>t.id==='t0')).status;
+  const opt=(key,ic,icbg,t,s)=>`<button class="statusopt ${cur===key?'on':''}" data-action="set-status" data-status="${key}">
+    <div class="ic" style="background:${icbg}">${ic}</div>
+    <div style="flex:1;min-width:0;"><div class="t">${t}</div><div class="s">${s}</div></div>
+    <div class="rd">${cur===key?I.check:''}</div></button>`;
+  return overlay(`<div class="grab"></div>
+    <h2 style="margin-bottom:18px;">Status ändern</h2>
+    ${opt('in_bearbeitung',I.play,'#F2772B','In Bearbeitung','Du arbeitest aktiv daran')}
+    ${opt('pausiert',I.pause,'#F59E0B','Pausiert','Vorübergehend angehalten')}
+    ${opt('abgeschlossen',I.done,'#16A34A','Abgeschlossen','Aufgabe ist erledigt')}
+    ${opt('offen',I.pool,'#64748B','Zurück in den Pool','Freigeben für andere')}
+    <button class="btn ghost" style="margin-top:6px;" data-action="close-sheet">Abbrechen</button>`);
+}
+
+function sheetValidation(){
+  const row=t=>`<div class="validrow"><div class="ic"><div class="d">${I.warn}</div></div><span>${t}</span></div>`;
+  const missing=[];
+  if(!state.newTask.title.trim()) missing.push('Titel');
+  if(!state.newTask.desc.trim()) missing.push('Beschreibung');
+  return overlay(`<div class="grab"></div>
+    <h2>Noch nicht vollständig</h2>
+    <div style="font-size:15px;color:var(--muted);margin:6px 0 18px;">Bitte ergänze noch:</div>
+    ${missing.map(row).join('')}
+    <button class="btn ghost" style="margin-top:4px;" data-action="close-sheet">Verstanden</button>`);
+}
+
+function sheetComments(){
+  const incoming=(name,txt,time)=>`<div class="msg"><div class="avatar" style="width:30px;height:30px;background:${AVA[initials(name)]};font-size:12px;">${initials(name)}</div><div class="bub"><div class="name">${name}</div><div class="b">${txt}</div><div class="time">${time}</div></div></div>`;
+  const mine=(txt,time)=>`<div class="msg me"><div class="bub"><div class="b">${txt}</div><div class="time">${time}</div></div></div>`;
+  return `<div class="overlay" data-overlay>
+    <div class="sheet full">
+      <div class="chat-h">
+        <div class="grab"></div>
+        <div class="top"><h2>Kommentare <span style="color:var(--muted-2);font-weight:800;">4</span></h2><button class="avatar" style="width:36px;height:36px;background:#F1F3F5;border:none;cursor:pointer;" data-action="close-sheet">${I.x}</button></div>
+      </div>
+      <div class="chat-body">
+        ${incoming('Anna Schmidt','Container ist fast voll, bitte heute noch leeren.','09:12')}
+        ${incoming('David Werner','Bin um 11 Uhr vor Ort.','09:34')}
+        ${mine('Foto vom Füllstand wäre hilfreich.','09:40')}
+        ${incoming('Anna Schmidt','Mache ich gleich.','09:42')}
+      </div>
+      <div class="chat-foot"><div class="gi">Kommentar schreiben…</div><button class="send" data-action="toast" data-msg="Senden (Demo)">${I.send}</button></div>
+    </div>
+  </div>`;
+}
+
+function overlay(inner){ return `<div class="overlay" data-overlay><div class="sheet">${inner}</div></div>`; }
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function renderScreen(){
+  const t = cur();
+  switch(t.view){
+    case 'home': return screenHome();
+    case 'project': return screenProject(t.id);
+    case 'tasks': return screenTasks();
+    case 'triages': return screenTriages();
+    case 'task': return screenTask(t.id);
+    case 'new': return screenNew();
+    default: return screenHome();
+  }
+}
+function renderSheet(){
+  switch(state.sheet){
+    case 'filter': return sheetFilter();
+    case 'photo': return sheetPhoto();
+    case 'status': return sheetStatus();
+    case 'validation': return sheetValidation();
+    case 'comments': return sheetComments();
+    default: return '';
+  }
+}
+let toastTimer=null;
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML = renderScreen() + renderSheet() + (state._toast?`<div class="toast">${state._toast}</div>`:'');
+}
+function toast(msg){
+  state._toast=msg; render();
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{ state._toast=null; render(); }, 1900);
+}
+
+/* =====================================================================
+   EVENTS (delegated)
+   ===================================================================== */
+function captureNewForm(){
+  const ti=document.getElementById('f-title'), de=document.getElementById('f-desc');
+  if(ti) state.newTask.title=ti.value;
+  if(de) state.newTask.desc=de.value;
+}
+
+document.addEventListener('click', e=>{
+  const el = e.target.closest('[data-action]');
+  // overlay backdrop closes sheet
+  if(!el){
+    const ov=e.target.closest('[data-overlay]');
+    if(ov && e.target===ov){ closeSheet(); }
+    return;
+  }
+  const a = el.dataset.action;
+  switch(a){
+    case 'back': back(); break;
+    case 'home': state.stack=[{view:'home'}]; state.sheet=null; render(); break;
+    case 'open-project': navigate('project',{id:el.dataset.id}); break;
+    case 'open-bereich': navigate(el.dataset.bereich==='triagen'?'triages':'tasks'); break;
+    case 'open-task': navigate('task',{id:el.dataset.id}); break;
+    case 'open-triage': toast('Triage-Detail folgt'); break;
+    case 'new': captureNewForm(); navigate('new'); break;
+    case 'filter': state.filter=el.dataset.filter; render(); break;
+    case 'open-sheet': if(cur().view==='new') captureNewForm(); openSheet(el.dataset.sheet); break;
+    case 'close-sheet': closeSheet(); break;
+    case 'apply-filter': closeSheet(); toast('Filter angewendet'); break;
+    case 'toggle-label': {
+      const v=el.dataset.val;
+      state.newLabels.has(v)?state.newLabels.delete(v):state.newLabels.add(v);
+      captureNewForm(); render(); break;
+    }
+    case 'claim': {
+      const t=findTask(el.dataset.id); if(t){ t.status='in_bearbeitung'; t.assignee='Du'; }
+      render(); toast('Aufgabe übernommen'); break;
+    }
+    case 'set-status': {
+      const t=findTask(cur().id)||TASKS.find(x=>x.id==='t0');
+      const st=el.dataset.status;
+      t.status=st;
+      if(st==='offen') t.assignee=null;
+      else if(!t.assignee||t.assignee===null) t.assignee='Du';
+      closeSheet();
+      toast('Status: '+STATUS[st].label);
+      break;
+    }
+    case 'create-task': {
+      captureNewForm();
+      if(!state.newTask.title.trim() || !state.newTask.desc.trim()){ openSheet('validation'); }
+      else {
+        // add to list (front), reset form, go to tasks
+        TASKS.unshift({id:'t'+Date.now(), title:state.newTask.title.trim(), author:'Du', when:'gerade eben', status:'offen', assignee:null});
+        state.newTask={title:'',desc:''}; state.newLabels=new Set(['Entsorgung','Dringend']);
+        state.stack=[{view:'home'},{view:'project',id:'nordring'},{view:'tasks'}];
+        state.sheet=null; render(); toast('Aufgabe erstellt ✓');
+      }
+      break;
+    }
+    case 'toast': toast(el.dataset.msg); break;
+  }
+});
+
+// keep form state on typing (so re-renders don't lose it)
+document.addEventListener('input', e=>{
+  if(e.target.id==='f-title') state.newTask.title=e.target.value;
+  if(e.target.id==='f-desc') state.newTask.desc=e.target.value;
+});
+
+render();
+</script>
+</body>
+</html>
