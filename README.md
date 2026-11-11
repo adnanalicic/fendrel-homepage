@@ -20,8 +20,8 @@ Just open `index.html` in any browser — no build step required.
 
 All content is in `index.html`. Key things to update before going live:
 
-- Company contact email (`kontakt@fendrel.app`)
-- Website URL (`fendrel.app`)  
+- Company contact email (`kontakt@fendrel.de`)
+- Website URL (`fendrel.de`)  
 - Phone number in the CTA section
 - Testimonial quotes (replace placeholders with real customer quotes)
 - Pilot customer names/roles
